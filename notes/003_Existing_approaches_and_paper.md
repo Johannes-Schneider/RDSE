@@ -29,3 +29,7 @@ Open source, distributed deep learning library for the JVM. Build on top of Hado
 ### 5. Neuronale Netze
 
 [Link](http://www.neuronalesnetz.de/downloads/neuronalesnetz_de.pdf)
+
+### 6. Distributed Neuronale Networks
+
+[Link](https://blog.skymind.ai/distributed-deep-learning-part-1-an-introduction-to-distributed-training-of-neural-networks/)
