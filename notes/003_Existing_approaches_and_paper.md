@@ -25,3 +25,7 @@ Open source, distributed deep learning library for the JVM. Build on top of Hado
 ### 4. Network-Efficient Distributed Word2vec Training System for Large Vocabularies
 
 [Link](https://arxiv.org/abs/1606.08495)
+
+### 5. Neuronalenetze
+
+[Link](http://www.neuronalesnetz.de/downloads/neuronalesnetz_de.pdf)
