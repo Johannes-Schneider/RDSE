@@ -1,7 +1,7 @@
 ## Existing approaches
 
 ### 1. Microsoft Distributed Machine Learning Toolkit (DMTK)
-Open source framework for distributing model training across multiple nodes. Supports data parallelization, pipelining, model scheduling, distirbuted word embeddings (incl. Word2Vec) and much more.
+Open source framework for distributing model training across multiple nodes. Supports data parallelization, pipelining, model scheduling, distributed word embeddings (incl. Word2Vec) and much more.
 [Link](http://www.dmtk.io/)
 
 ### 2. DeepLearning4j (DL4J)
@@ -26,6 +26,6 @@ Open source, distributed deep learning library for the JVM. Build on top of Hado
 
 [Link](https://arxiv.org/abs/1606.08495)
 
-### 5. Neuronalenetze
+### 5. Neuronale Netze
 
 [Link](http://www.neuronalesnetz.de/downloads/neuronalesnetz_de.pdf)
