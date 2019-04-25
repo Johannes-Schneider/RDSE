@@ -12,8 +12,8 @@ Open source, distributed deep learning library for the JVM. Build on top of Hado
 
 ### 1. Large Scale Distributed Deep Networks (DistBelief)
 
-[Link](http://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf)
-[DistBelief in Akka](http://alexminnaar.com/2015/09/06/DistBelief-with-Akka.html)
+* [Link](http://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf)
+* [DistBelief in Akka](http://alexminnaar.com/2015/09/06/DistBelief-with-Akka.html)
 
 ### 2. SPARKNET: TRAINING DEEP NETWORKS IN SPARK
 
@@ -34,3 +34,8 @@ Open source, distributed deep learning library for the JVM. Build on top of Hado
 ### 6. Distributed Neuronale Networks
 
 [Link](https://blog.skymind.ai/distributed-deep-learning-part-1-an-introduction-to-distributed-training-of-neural-networks/)
+
+### 7. Neural Networks in Akka
+
+* [Artificial Neural Networks in Akka](https://www.academia.edu/29815486/Artificial_Neural_Networks_in_Akka)
+* [Decentralized and Distributed Machine Learning Model Training with Actors](http://www.scs.stanford.edu/17au-cs244b/labs/projects/addair.pdf)
