@@ -39,3 +39,7 @@ Open source, distributed deep learning library for the JVM. Build on top of Hado
 
 * [Artificial Neural Networks in Akka](https://www.academia.edu/29815486/Artificial_Neural_Networks_in_Akka)
 * [Decentralized and Distributed Machine Learning Model Training with Actors](http://www.scs.stanford.edu/17au-cs244b/labs/projects/addair.pdf)
+
+### 8. Distributed Negative Sampling for Word Embeddings
+
+[Link](https://www.aaai.org/ocs/index.php/AAAI/AAAI17/paper/viewFile/14956/14446)
