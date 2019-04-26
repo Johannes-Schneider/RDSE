@@ -1,5 +1,12 @@
 ## Expose
 
+### Idea
+
+* Build distributed word2vec (skip-gram) implementation
+* Try different optimization strategies for reducing the network load
+  * Compression (lossy and loss-free) for messages
+  * Subsampling, negative sampling
+
 ### Motivation
 
 * Bleeding edge of NLP
