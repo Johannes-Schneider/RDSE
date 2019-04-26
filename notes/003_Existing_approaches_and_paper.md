@@ -27,23 +27,27 @@ Open source, distributed deep learning library for the JVM. Build on top of Hado
 
 [Link](https://arxiv.org/abs/1606.08495)
 
-### 5. Neuronale Netze
+### 5. Asynchronous Training of Word Embeddings for Large Text Corpora
+
+[Link](https://arxiv.org/pdf/1812.03825.pdf)
+
+### 6. Neuronale Netze
 
 [Link](http://www.neuronalesnetz.de/downloads/neuronalesnetz_de.pdf)
 
-### 6. Distributed Neuronale Networks
+### 7. Distributed Neuronale Networks
 
 [Link](https://blog.skymind.ai/distributed-deep-learning-part-1-an-introduction-to-distributed-training-of-neural-networks/)
 
-### 7. Neural Networks in Akka
+### 8. Neural Networks in Akka
 
 * [Artificial Neural Networks in Akka](https://www.academia.edu/29815486/Artificial_Neural_Networks_in_Akka)
 * [Decentralized and Distributed Machine Learning Model Training with Actors](http://www.scs.stanford.edu/17au-cs244b/labs/projects/addair.pdf)
 
-### 8. Distributed Negative Sampling for Word Embeddings
+### 9. Distributed Negative Sampling for Word Embeddings
 
 [Link](https://www.aaai.org/ocs/index.php/AAAI/AAAI17/paper/viewFile/14956/14446)
 
-### 9. Word2Vec Tutorial
+### 10. Word2Vec Tutorial
 
 [Link](http://mccormickml.com/2016/04/19/word2vec-tutorial-the-skip-gram-model/)
