@@ -43,3 +43,7 @@ Open source, distributed deep learning library for the JVM. Build on top of Hado
 ### 8. Distributed Negative Sampling for Word Embeddings
 
 [Link](https://www.aaai.org/ocs/index.php/AAAI/AAAI17/paper/viewFile/14956/14446)
+
+### 9. Word2Vec Tutorial
+
+[Link](http://mccormickml.com/2016/04/19/word2vec-tutorial-the-skip-gram-model/)
