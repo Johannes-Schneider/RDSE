@@ -1,12 +1,9 @@
 package de.hpi.rdse.jujo;
 
 import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
-import com.beust.jcommander.Parameters;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import de.hpi.rdse.jujo.utils.startup.MasterCommand;
+import de.hpi.rdse.jujo.utils.startup.SlaveCommand;
 
 public class Main {
 
@@ -52,45 +49,11 @@ public class Main {
 
   }
 
-  private static void startMaster(MasterCommand masterCommand) throws ParameterException {
-    // run master
+  private static void startMaster(MasterCommand masterCommand) {
+    Bootstrap.runMaster(masterCommand);
   }
 
   private static void startSlave(SlaveCommand slaveCommand) {
-    // run slave
-  }
-
-  @Parameters(commandDescription = "start a master actor system")
-  static class MasterCommand extends CommandBase {
-
-    public static final int DEFAULT_PORT = 7877;
-
-    @Parameter(names = {"-h", "--host"}, description = "host address of this system")
-    String host = getDefaultHost();
-  }
-
-  @Parameters(commandDescription = "start a slave actor system")
-  static class SlaveCommand extends CommandBase {
-
-    public static final int DEFAULT_PORT = 7879;
-
-    @Parameter(names = {"-h", "--host"}, description = "host of the master system")
-    String masterHost;
-  }
-
-  abstract static class CommandBase {
-
-    private static final int DEFAULT_NUMBER_OF_WORKERS = 4;
-
-    @Parameter(names = {"-w", "--workers"}, description = "number of local workers")
-    int numberOfWorkers = DEFAULT_NUMBER_OF_WORKERS;
-
-    String getDefaultHost() {
-      try {
-        return InetAddress.getLocalHost().getHostAddress();
-      } catch (UnknownHostException e) {
-        return "localhost";
-      }
-    }
+    Bootstrap.runSlave(slaveCommand);
   }
 }
