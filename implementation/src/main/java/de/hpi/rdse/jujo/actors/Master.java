@@ -1,15 +1,25 @@
 package de.hpi.rdse.jujo.actors;
 
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Address;
 import akka.actor.Props;
+import akka.stream.SinkRef;
+import de.hpi.rdse.jujo.utils.FilePartitioner;
 import de.hpi.rdse.jujo.utils.startup.MasterCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class Master extends AbstractReapedActor {
 
@@ -19,31 +29,35 @@ public class Master extends AbstractReapedActor {
         return Props.create(Master.class, () -> new Master(masterCommand));
     }
 
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor
-    static class SlaveNodeRegistrationMessage implements Serializable {
+    @Getter @Builder @AllArgsConstructor
+    static class SlaveNodeRegistered implements Serializable {
         private static final long serialVersionUID = -1682543505601299772L;
-        private Address slaveAddress;
-        private int numberOfWorkers;
+        private final Address slaveAddress;
+        private final int numberOfWorkers;
 
     }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor
-    static class SlaveNodeTerminatedMessage implements Serializable {
+    @Getter @Builder @AllArgsConstructor
+    static class SlaveNodeTerminated implements Serializable {
         private static final long serialVersionUID = -3053321777422537935L;
-        private Address slaveAddress;
-
+        private final Address slaveAddress;
     }
+
+    @Getter @Builder @AllArgsConstructor
+    public static class RequestCorpusPartition implements Serializable {
+        private static final long serialVersionUID = -683972376493023381L;
+        private final SinkRef<String> sink;
+    }
+
+    private final Map<Address, Integer> workersPerSlave = new HashMap<>();
+    private final FilePartitioner filePartitioner;
     private int currentNumberOfSlaves = 0;
     private int numberOfSlavesToStartWork;
 
     private Master(MasterCommand masterCommand) {
-        try {
-            this.parseInputFile(masterCommand.getPathToInputFile());
-        } catch (IOException e) {
-            this.log().error(e, "Error while processing input file.");
-        }
         // local actor system counts as one slave
-        this.numberOfSlavesToStartWork = masterCommand.getNumberOfSlaves() + 1;
-        this.self().tell(SlaveNodeRegistrationMessage.builder()
+        numberOfSlavesToStartWork = masterCommand.getNumberOfSlaves() + 1;
+        filePartitioner = new FilePartitioner(new File(masterCommand.getPathToInputFile()), numberOfSlavesToStartWork);
+        this.self().tell(SlaveNodeRegistered.builder()
                         .slaveAddress(this.self().path().address())
                         .numberOfWorkers(masterCommand.getNumberOfWorkers())
                         .build(),
@@ -51,14 +65,27 @@ public class Master extends AbstractReapedActor {
         );
     }
 
-    private void parseInputFile(String pathToInputFile) throws IOException {
-
-    }
-
     @Override
     public Receive createReceive() {
         return receiveBuilder()
+                .match(SlaveNodeRegistered.class, this::handle)
+                .match(RequestCorpusPartition.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
+    }
+
+    private void handle(SlaveNodeRegistered message) {
+        if (workersPerSlave.putIfAbsent(message.getSlaveAddress(), message.getNumberOfWorkers()) != null) {
+            return;
+        }
+
+        currentNumberOfSlaves++;
+        if (currentNumberOfSlaves == numberOfSlavesToStartWork) {
+            // TODO: start working
+        }
+    }
+
+    private void handle(RequestCorpusPartition message) {
+
     }
 }

@@ -5,12 +5,14 @@ import akka.actor.Props;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
+import akka.stream.SinkRef;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.util.ByteString;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,6 +48,12 @@ public class CorpusSource extends AbstractReapedActor {
     static class CorpusOffer implements Serializable {
         private static final long serialVersionUID = 8680514059027295822L;
         SourceRef<ByteString> sourceRef;
+    }
+
+    @Getter @AllArgsConstructor
+    static class CorpusSinkReady implements Serializable {
+        private static final long serialVersionUID = 4382490549365244631L;
+        final SinkRef<ByteString> sinkRef;
     }
 
     private final Materializer materializer;
@@ -90,7 +98,7 @@ public class CorpusSource extends AbstractReapedActor {
     }
 
     @AllArgsConstructor
-    static class FileIterator implements Iterator<ByteString> {
+    static class FileIterator implements Iterator<String> {
 
         private static final Logger Log = LogManager.getLogger(FileIterator.class);
 
@@ -105,7 +113,7 @@ public class CorpusSource extends AbstractReapedActor {
         }
 
         @Override
-        public ByteString next() {
+        public String next() {
             try {
                 fileStream.getChannel().position(readOffset);
                 int bufferSize = (int) Math.min(chunkSize, readLength);
@@ -114,7 +122,8 @@ public class CorpusSource extends AbstractReapedActor {
                 readOffset += read;
                 readLength -= read;
 
-                return ByteString.fromByteBuffer(ByteBuffer.wrap(buffer));
+                ByteString bs = ByteString.fromByteBuffer(ByteBuffer.wrap(buffer));
+                bs.toString();
             } catch (IOException e) {
                 Log.error("exception while reading from corpus file", e);
                 readLength = 0;

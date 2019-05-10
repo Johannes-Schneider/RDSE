@@ -66,7 +66,7 @@ public class Bootstrap {
 
         // Tell the Slave endPassword register the local ActorSystem
         slave.tell(
-                Slave.RegisterAtShepherdMessage.builder()
+                Slave.RegisterAtShepherd.builder()
                         .numberOfLocalWorkers(slaveCommand.getNumberOfWorkers())
                         .shepherdAddress(new Address(
                                 "akka.tcp",

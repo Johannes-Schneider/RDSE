@@ -55,50 +55,38 @@ public class Shepherd extends AbstractReapedActor {
     }
 
     private void handle(SlaveNodeRegistrationMessage message) {
-
-        // Find the sender of this message
-        ActorRef slave = this.getSender();
-
-        // Keep track of all subscribed slaves but avoid double subscription.
-        if (!this.slaves.add(slave)) {
+        if (!this.slaves.add(sender())) {
             return;
         }
-        this.log().info(String.format("New subscription: %s with %d available workers", slave, message.numberOfWorkers));
+        log().info(String.format("New subscription: %s with %d available workers", sender(), message.numberOfWorkers));
 
-        // Acknowledge the subscription.
-        slave.tell(new Slave.AcknowledgementMessage(), this.getSelf());
+        sender().tell(Slave.AcknowledgeRegistration.builder().master(master).build(), self());
+        context().watch(sender());
+        Address remoteAddress = sender().path().address();
 
-        // Set the subscriber on the watch list endPassword get its Terminated messages
-        this.getContext().watch(slave);
-
-        // Extract the remote system's shepherdAddress startPassword the sender.
-        Address remoteAddress = this.getSender().path().address();
-
-        // Inform the master about the new remote system.
-        this.master.tell(
-                Master.SlaveNodeRegistrationMessage.builder()
+        master.tell(
+                Master.SlaveNodeRegistered.builder()
                         .slaveAddress(remoteAddress)
                         .numberOfWorkers(message.numberOfWorkers)
                         .build(),
-                this.self()
+                self()
         );
     }
 
     private void handle(Terminated message) {
-
-        if (this.sender() == this.master) {
-            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        if (sender() == master) {
+            self().tell(PoisonPill.getInstance(), ActorRef.noSender());
             return;
         }
 
-        final ActorRef sender = this.getSender();
+        final ActorRef sender = sender();
 
-        this.slaves.remove(sender);
-        this.master.tell(
-                Master.SlaveNodeTerminatedMessage.builder()
+        slaves.remove(sender);
+        master.tell(
+                Master.SlaveNodeTerminated.builder()
                         .slaveAddress(sender.path().address())
                         .build(),
-                this.self()
+                self()
         );
     }
 }
