@@ -33,7 +33,7 @@ public class CorpusSink extends AbstractReapedActor {
     private final ActorRef wordCountWorker;
 
     private CorpusSink(File storageFile, ActorRef wordCountWorker) {
-        materializer = ActorMaterializer.create(context().system());
+        this.materializer = ActorMaterializer.create(context().system());
         this.storageFile = storageFile;
         this.wordCountWorker = wordCountWorker;
     }
@@ -47,14 +47,15 @@ public class CorpusSink extends AbstractReapedActor {
     }
 
     private void handle(PrepareCorpusTransferMessage message) {
-        Sink<ByteString, CompletionStage<IOResult>> sink = createSink();
+        Sink<ByteString, CompletionStage<IOResult>> sink = this.createSink();
         CompletionStage<SinkRef<ByteString>> sinkRef = StreamRefs.<ByteString>sinkRef()
                 .via(Flow.of(ByteString.class).map(this::processCorpusChunk))
                 .to(sink)
-                .run(materializer);
+                .run(this.materializer);
 
-        Patterns.pipe(FutureConverters.toScala(sinkRef.thenApply(CorpusSource.CorpusSinkReady::new)), context().dispatcher())
-                .to(sender());
+        Patterns.pipe(FutureConverters.toScala(sinkRef.thenApply(CorpusSource.CorpusSinkReady::new)),
+                context().dispatcher())
+                .to(this.sender());
     }
 
     private Sink<ByteString, CompletionStage<IOResult>> createSink() {
@@ -62,7 +63,7 @@ public class CorpusSink extends AbstractReapedActor {
     }
 
     private ByteString processCorpusChunk(ByteString chunk) {
-        wordCountWorker.tell(WordCountWorker.ProcessCorpusChunk.builder().chunk(chunk).build(), self());
+        this.wordCountWorker.tell(WordCountWorker.ProcessCorpusChunk.builder().chunk(chunk).build(), self());
         return chunk;
     }
 }

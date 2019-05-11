@@ -1,11 +1,6 @@
 package de.hpi.rdse.jujo.actors;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.Address;
-import akka.actor.Cancellable;
-import akka.actor.Props;
-import akka.actor.Scheduler;
+import akka.actor.*;
 import akka.remote.DisassociatedEvent;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -57,15 +52,13 @@ public class Slave extends AbstractReapedActor {
 
     private void handle(RegisterAtShepherd message) {
         // Cancel any running connect schedule, because got a new shepherdAddress
-        if (this.connectSchedule != null) {
-            this.connectSchedule.cancel();
-            this.connectSchedule = null;
-        }
+        this.cancelRunningConnectSchedule();
 
         // Find the shepherd actor in the remote actor system
-        final ActorSelection selection = this.getContext().getSystem().actorSelection(String.format("%s/user/%s", message.shepherdAddress, Shepherd.DEFAULT_NAME));
+        final ActorSelection selection = this.getContext().getSystem()
+                .actorSelection(String.format("%s/user/%s", message.shepherdAddress, Shepherd.DEFAULT_NAME));
 
-        // Register the local actor system by periodically sending subscription messages (until an acknowledgement was received)
+        // Register the local actor system by periodically sending subscription messages (until an ack was received)
         final Scheduler scheduler = this.getContext().getSystem().scheduler();
         final ExecutionContextExecutor dispatcher = this.getContext().getSystem().dispatcher();
         this.connectSchedule = scheduler.schedule(
@@ -83,13 +76,15 @@ public class Slave extends AbstractReapedActor {
 
     private void handle(AcknowledgeRegistration message) {
         // Cancel any running connect schedule, because we are now connected
+        this.cancelRunningConnectSchedule();
+        this.log().info("Subscription successfully acknowledged by {}.", this.getSender());
+    }
+
+    private void cancelRunningConnectSchedule() {
         if (this.connectSchedule != null) {
             this.connectSchedule.cancel();
             this.connectSchedule = null;
         }
-
-        // Log the connection success
-        this.log().info("Subscription successfully acknowledged by {}.", this.getSender());
     }
 
     private void handle(DisassociatedEvent event) {

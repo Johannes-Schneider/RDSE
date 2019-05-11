@@ -1,7 +1,5 @@
 package de.hpi.rdse.jujo.actors;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Address;
 import akka.actor.Props;
 import akka.stream.SinkRef;
@@ -9,17 +7,12 @@ import de.hpi.rdse.jujo.utils.FilePartitioner;
 import de.hpi.rdse.jujo.utils.startup.MasterCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class Master extends AbstractReapedActor {
 
@@ -29,20 +22,27 @@ public class Master extends AbstractReapedActor {
         return Props.create(Master.class, () -> new Master(masterCommand));
     }
 
-    @Getter @Builder @AllArgsConstructor
+    @Getter
+    @Builder
+    @AllArgsConstructor
     static class SlaveNodeRegistered implements Serializable {
         private static final long serialVersionUID = -1682543505601299772L;
         private final Address slaveAddress;
         private final int numberOfWorkers;
 
     }
-    @Getter @Builder @AllArgsConstructor
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
     static class SlaveNodeTerminated implements Serializable {
         private static final long serialVersionUID = -3053321777422537935L;
         private final Address slaveAddress;
     }
 
-    @Getter @Builder @AllArgsConstructor
+    @Getter
+    @Builder
+    @AllArgsConstructor
     public static class RequestCorpusPartition implements Serializable {
         private static final long serialVersionUID = -683972376493023381L;
         private final SinkRef<String> sink;
@@ -75,7 +75,7 @@ public class Master extends AbstractReapedActor {
     }
 
     private void handle(SlaveNodeRegistered message) {
-        if (workersPerSlave.putIfAbsent(message.getSlaveAddress(), message.getNumberOfWorkers()) != null) {
+        if (this.workersPerSlave.putIfAbsent(message.getSlaveAddress(), message.getNumberOfWorkers()) != null) {
             return;
         }
 

@@ -18,6 +18,7 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
     }
 
     protected void handleAny(Object message) {
-        this.log().warning(String.format("%s received unknown message: %s", this.getClass().getName(), message.toString()));
+        this.log().warning(
+                String.format("%s received unknown message: %s", this.getClass().getName(), message.toString()));
     }
 }

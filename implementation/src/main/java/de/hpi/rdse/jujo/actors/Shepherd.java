@@ -1,10 +1,6 @@
 package de.hpi.rdse.jujo.actors;
 
-import akka.actor.ActorRef;
-import akka.actor.Address;
-import akka.actor.PoisonPill;
-import akka.actor.Props;
-import akka.actor.Terminated;
+import akka.actor.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -58,15 +54,14 @@ public class Shepherd extends AbstractReapedActor {
         if (!this.slaves.add(sender())) {
             return;
         }
-        log().info(String.format("New subscription: %s with %d available workers", sender(), message.numberOfWorkers));
+        this.log().info(String.format("New subscription: %s with %d available workers", sender(), message.numberOfWorkers));
 
-        sender().tell(Slave.AcknowledgeRegistration.builder().master(master).build(), self());
-        context().watch(sender());
-        Address remoteAddress = sender().path().address();
+        this.sender().tell(Slave.AcknowledgeRegistration.builder().master(master).build(), self());
+        this.context().watch(sender());
 
         master.tell(
                 Master.SlaveNodeRegistered.builder()
-                        .slaveAddress(remoteAddress)
+                        .slaveAddress(this.sender().path().address())
                         .numberOfWorkers(message.numberOfWorkers)
                         .build(),
                 self()
@@ -75,18 +70,13 @@ public class Shepherd extends AbstractReapedActor {
 
     private void handle(Terminated message) {
         if (sender() == master) {
-            self().tell(PoisonPill.getInstance(), ActorRef.noSender());
+            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
             return;
         }
 
-        final ActorRef sender = sender();
-
-        slaves.remove(sender);
-        master.tell(
-                Master.SlaveNodeTerminated.builder()
-                        .slaveAddress(sender.path().address())
-                        .build(),
-                self()
-        );
+        slaves.remove(this.sender());
+        master.tell(Master.SlaveNodeTerminated.builder()
+                        .slaveAddress(this.sender().path().address())
+                        .build(), this.self());
     }
 }

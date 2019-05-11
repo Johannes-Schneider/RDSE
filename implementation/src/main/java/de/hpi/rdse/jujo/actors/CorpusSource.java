@@ -12,17 +12,12 @@ import akka.stream.javadsl.StreamRefs;
 import akka.util.ByteString;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import scala.compat.java8.FutureConverters;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
@@ -50,7 +45,8 @@ public class CorpusSource extends AbstractReapedActor {
         SourceRef<ByteString> sourceRef;
     }
 
-    @Getter @AllArgsConstructor
+    @Getter
+    @AllArgsConstructor
     static class CorpusSinkReady implements Serializable {
         private static final long serialVersionUID = 4382490549365244631L;
         final SinkRef<ByteString> sinkRef;
@@ -78,11 +74,11 @@ public class CorpusSource extends AbstractReapedActor {
 
     private void handle(ReceiveCorpusPartition message) {
         Source<ByteString, NotUsed> source = createSource();
-        CompletionStage<SourceRef<ByteString>> sourceRef = source.runWith(StreamRefs.sourceRef(), materializer);
+        CompletionStage<SourceRef<ByteString>> sourceRef = source.runWith(StreamRefs.sourceRef(), this.materializer);
 
         // TODO: mention bad documentation about Scala vs. Java futures
         Patterns.pipe(FutureConverters.toScala(sourceRef.thenApply(CorpusOffer::new)), context().dispatcher())
-                .to(sender());
+                .to(this.sender());
     }
 
     private Source<ByteString, NotUsed> createSource() {

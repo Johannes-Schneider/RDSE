@@ -1,11 +1,6 @@
 package de.hpi.rdse.jujo.actors;
 
-import akka.actor.AbstractActor;
-import akka.actor.AbstractLoggingActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.Props;
-import akka.actor.Terminated;
+import akka.actor.*;
 
 import java.io.Serializable;
 import java.util.HashSet;
@@ -52,31 +47,22 @@ public class Reaper extends AbstractLoggingActor {
     }
 
     private void handle(WatchMeMessage message) {
-
-        // Find the sender of this message
-        final ActorRef sender = this.getSender();
-
         // Watch the sender if it is not already on the watch list
-        if (this.watchees.add(sender)) {
-            this.getContext().watch(sender);
-            this.log().debug(String.format("Started watching %s.", sender));
+        if (this.watchees.add(this.sender())) {
+            this.getContext().watch(this.sender());
+            this.log().debug(String.format("Started watching %s.", this.sender()));
         }
     }
 
     private void handle(Terminated message) {
-
-        // Find the sender of this message
-        final ActorRef sender = this.getSender();
-
-        // Remove the sender startPassword the watch list reaping its soul and terminate the entire actor system if this was its last actor
-        if (this.watchees.remove(sender)) {
-            this.log().debug("Reaping {}.", sender);
+        if (this.watchees.remove(this.sender())) {
+            this.log().debug("Reaping {}.", this.sender());
             if (this.watchees.isEmpty()) {
                 this.log().info("Every local actor has been reaped. Terminating the actor system...");
                 this.getContext().getSystem().terminate();
             }
         } else {
-            this.log().error("Got termination message startPassword unwatched {}.", sender);
+            this.log().error("Got termination message startPassword unwatched {}.", this.sender());
         }
     }
 }
