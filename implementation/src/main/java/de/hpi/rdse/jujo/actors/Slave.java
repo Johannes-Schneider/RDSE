@@ -2,21 +2,26 @@ package de.hpi.rdse.jujo.actors;
 
 import akka.actor.*;
 import akka.remote.DisassociatedEvent;
+import de.hpi.rdse.jujo.utils.startup.SlaveCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.Duration;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 public class Slave extends AbstractReapedActor {
 
     public static final String DEFAULT_NAME = "slave";
+    public static final String CORPUS_DIRECTORY_NAME = "corpus";
 
-    public static Props props() {
-        return Props.create(Slave.class);
+    public static Props props(SlaveCommand slaveCommand) {
+        return Props.create(Slave.class, () -> new Slave(slaveCommand));
     }
 
     @Getter @Builder @AllArgsConstructor
@@ -32,12 +37,32 @@ public class Slave extends AbstractReapedActor {
         final ActorRef master;
     }
 
+    private final ActorRef corpusSink;
     private Cancellable connectSchedule;
+    private final String temporaryWorkingDirectory;
+    private File corpusLocation;
 
     @Override
     public void preStart() throws Exception {
         super.preStart();
         this.getContext().getSystem().eventStream().subscribe(this.getSelf(), DisassociatedEvent.class);
+    }
+
+    public Slave(SlaveCommand salveCommand) throws IOException {
+        this.corpusSink = this.initializeSink();
+        this.temporaryWorkingDirectory = salveCommand.getTemporaryWorkingDirectory();
+        this.initializeLocalWorkingDirectory();
+    }
+
+    private void initializeLocalWorkingDirectory() throws IOException {
+        this.corpusLocation = Paths.get(this.temporaryWorkingDirectory, CORPUS_DIRECTORY_NAME).toFile();
+        if(!this.corpusLocation.mkdir()) {
+            throw new IOException("Unable to create directory for storing corpus. Check file system permissions.");
+        }
+    }
+
+    private ActorRef initializeSink() {
+        return this.context().actorOf(CorpusSink.props());
     }
 
     @Override
@@ -77,6 +102,7 @@ public class Slave extends AbstractReapedActor {
     private void handle(AcknowledgeRegistration message) {
         // Cancel any running connect schedule, because we are now connected
         this.cancelRunningConnectSchedule();
+        this.corpusSink.tell(new CorpusSink.RequestCorpusFromMaster(this.corpusLocation), this.self());
         this.log().info("Subscription successfully acknowledged by {}.", this.getSender());
     }
 

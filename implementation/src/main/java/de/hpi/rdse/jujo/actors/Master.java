@@ -1,8 +1,10 @@
 package de.hpi.rdse.jujo.actors;
 
+import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.actor.Props;
 import akka.stream.SinkRef;
+import akka.util.ByteString;
 import de.hpi.rdse.jujo.utils.FilePartitioner;
 import de.hpi.rdse.jujo.utils.startup.MasterCommand;
 import lombok.AllArgsConstructor;
@@ -41,22 +43,25 @@ public class Master extends AbstractReapedActor {
     }
 
     @Getter
-    @Builder
     @AllArgsConstructor
-    public static class RequestCorpusPartition implements Serializable {
-        private static final long serialVersionUID = -683972376493023381L;
-        private final SinkRef<String> sink;
+    static class RequestCorpusPartition implements Serializable {
+        private static final long serialVersionUID = 4382490549365244631L;
+        final SinkRef<ByteString> sinkRef;
     }
 
     private final Map<Address, Integer> workersPerSlave = new HashMap<>();
+    private final Map<ActorRef, ActorRef> corpusSources = new HashMap<>();
+    private final String corpusFile;
     private final FilePartitioner filePartitioner;
     private int currentNumberOfSlaves = 0;
     private int numberOfSlavesToStartWork;
 
     private Master(MasterCommand masterCommand) {
         // local actor system counts as one slave
-        numberOfSlavesToStartWork = masterCommand.getNumberOfSlaves() + 1;
-        filePartitioner = new FilePartitioner(new File(masterCommand.getPathToInputFile()), numberOfSlavesToStartWork);
+        this.numberOfSlavesToStartWork = masterCommand.getNumberOfSlaves() + 1;
+        this.corpusFile = masterCommand.getPathToInputFile();
+        this.filePartitioner = new FilePartitioner(new File(masterCommand.getPathToInputFile()),
+                numberOfSlavesToStartWork);
         this.self().tell(SlaveNodeRegistered.builder()
                         .slaveAddress(this.self().path().address())
                         .numberOfWorkers(masterCommand.getNumberOfWorkers())
@@ -86,6 +91,13 @@ public class Master extends AbstractReapedActor {
     }
 
     private void handle(RequestCorpusPartition message) {
-
+        if (corpusSources.containsKey(this.sender())) {
+            // Slave already requested partition
+            return;
+        }
+        ActorRef corpusSource = this.getContext().actorOf(CorpusSource.props(new File(this.corpusFile), 0, 200));
+        this.corpusSources.put(this.sender(), corpusSource);
+        corpusSource.tell(CorpusSource.TransferPartition.builder().sinkRef(message.getSinkRef()).build(),
+                this.sender());
     }
 }

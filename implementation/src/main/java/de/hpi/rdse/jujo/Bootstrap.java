@@ -54,7 +54,7 @@ public class Bootstrap {
 
         actorSystem.actorOf(Reaper.props(), Reaper.DEFAULT_NAME);
 
-        final ActorRef slave = actorSystem.actorOf(Slave.props(), Slave.DEFAULT_NAME);
+        final ActorRef slave = actorSystem.actorOf(Slave.props(slaveCommand), Slave.DEFAULT_NAME);
 
         slave.tell(
                 Slave.RegisterAtShepherd.builder()
