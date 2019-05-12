@@ -7,6 +7,7 @@ import akka.stream.Materializer;
 import akka.stream.SinkRef;
 import akka.stream.javadsl.Source;
 import akka.util.ByteString;
+import de.hpi.rdse.jujo.utils.FilePartition;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,20 +29,18 @@ public class CorpusSource extends AbstractReapedActor {
         final SinkRef<ByteString> sinkRef;
     }
 
-    public static Props props(File inputFile, long readOffset, long readLength) {
-        return Props.create(CorpusSource.class, () -> new CorpusSource(inputFile, readOffset, readLength));
+    public static Props props(File inputFile, FilePartition filePartition) {
+        return Props.create(CorpusSource.class, () -> new CorpusSource(inputFile, filePartition));
     }
 
     private final Materializer materializer;
     private final File inputFile;
-    private final long readOffset;
-    private final long readLength;
+    private FilePartition filePartition;
 
-    private CorpusSource(File inputFile, long readOffset, long readLength) {
+    private CorpusSource(File inputFile, FilePartition filePartition) {
         materializer = ActorMaterializer.create(context().system());
         this.inputFile = inputFile;
-        this.readOffset = readOffset;
-        this.readLength = readLength;
+        this.filePartition = filePartition;
     }
 
     @Override
@@ -59,8 +58,8 @@ public class CorpusSource extends AbstractReapedActor {
     private Source<ByteString, NotUsed> createSource() {
         try {
             FileInputStream stream = new FileInputStream(inputFile);
-            return Source.fromIterator(
-                    () -> new FileIterator(stream, readOffset, readLength, READ_CHUNK_SIZE));
+            return Source.fromIterator(() -> new FileIterator(stream, this.filePartition.getReadOffset(),
+                    this.filePartition.getReadLength(), READ_CHUNK_SIZE));
 
         } catch (FileNotFoundException e) {
             this.log().error(e, "unable to create corpus source");

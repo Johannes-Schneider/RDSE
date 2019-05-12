@@ -5,6 +5,7 @@ import akka.actor.Address;
 import akka.actor.Props;
 import akka.stream.SinkRef;
 import akka.util.ByteString;
+import de.hpi.rdse.jujo.utils.FilePartition;
 import de.hpi.rdse.jujo.utils.FilePartitioner;
 import de.hpi.rdse.jujo.utils.startup.MasterCommand;
 import lombok.AllArgsConstructor;
@@ -60,8 +61,7 @@ public class Master extends AbstractReapedActor {
         // local actor system counts as one slave
         this.numberOfSlavesToStartWork = masterCommand.getNumberOfSlaves() + 1;
         this.corpusFile = masterCommand.getPathToInputFile();
-        this.filePartitioner = new FilePartitioner(new File(masterCommand.getPathToInputFile()),
-                numberOfSlavesToStartWork);
+        this.filePartitioner = new FilePartitioner(new File(this.corpusFile), numberOfSlavesToStartWork);
         this.self().tell(SlaveNodeRegistered.builder()
                         .slaveAddress(this.self().path().address())
                         .numberOfWorkers(masterCommand.getNumberOfWorkers())
@@ -95,7 +95,8 @@ public class Master extends AbstractReapedActor {
             // Slave already requested partition
             return;
         }
-        ActorRef corpusSource = this.getContext().actorOf(CorpusSource.props(new File(this.corpusFile), 0, 200));
+        FilePartition filePartition = this.filePartitioner.getNextPartition();
+        ActorRef corpusSource = this.getContext().actorOf(CorpusSource.props(new File(this.corpusFile), filePartition));
         this.corpusSources.put(this.sender(), corpusSource);
         corpusSource.tell(CorpusSource.TransferPartition.builder().sinkRef(message.getSinkRef()).build(),
                 this.sender());
