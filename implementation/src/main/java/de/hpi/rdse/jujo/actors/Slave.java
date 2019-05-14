@@ -6,6 +6,7 @@ import de.hpi.rdse.jujo.utils.startup.SlaveCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.Duration;
 
@@ -24,17 +25,17 @@ public class Slave extends AbstractReapedActor {
         return Props.create(Slave.class, () -> new Slave(slaveCommand));
     }
 
-    @Getter @Builder @AllArgsConstructor
+    @Getter @Builder @AllArgsConstructor @NoArgsConstructor
     public static class RegisterAtShepherd implements Serializable {
         private static final long serialVersionUID = -4399047760637406556L;
         private Address shepherdAddress;
         private int numberOfLocalWorkers;
     }
 
-    @Getter @Builder @AllArgsConstructor
+    @Getter @Builder @AllArgsConstructor @NoArgsConstructor
     public static class AcknowledgeRegistration implements Serializable {
         private static final long serialVersionUID = 3226726675135579564L;
-        final ActorRef master;
+        private ActorRef master;
     }
 
     private final ActorRef corpusSink;

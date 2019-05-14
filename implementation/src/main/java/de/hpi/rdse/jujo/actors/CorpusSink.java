@@ -13,6 +13,7 @@ import akka.stream.javadsl.StreamRefs;
 import akka.util.ByteString;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import scala.compat.java8.FutureConverters;
 
 import java.io.File;
@@ -25,10 +26,10 @@ public class CorpusSink extends AbstractReapedActor {
         return Props.create(CorpusSink.class, CorpusSink::new);
     }
 
-    @AllArgsConstructor @Getter
+    @AllArgsConstructor @Getter @NoArgsConstructor
     static class RequestCorpusFromMaster implements Serializable {
         private static final long serialVersionUID = -4024260649244404785L;
-        private final File targetDestination;
+        private File targetDestination;
     }
 
     private final Materializer materializer;

@@ -5,6 +5,7 @@ import akka.util.ByteString;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.io.File;
 import java.io.Serializable;
@@ -17,10 +18,10 @@ public class WordCountWorker extends AbstractReapedActor {
         return Props.create(WordCountWorker.class, () -> new WordCountWorker(storageFile));
     }
 
-    @Builder @Getter @AllArgsConstructor
+    @Builder @Getter @AllArgsConstructor @NoArgsConstructor
     static class ProcessCorpusChunk implements Serializable {
         private static final long serialVersionUID = -7118713465294264590L;
-        final ByteString chunk;
+        private ByteString chunk;
     }
 
     private final File storageFile;

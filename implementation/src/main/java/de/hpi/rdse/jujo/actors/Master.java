@@ -11,6 +11,7 @@ import de.hpi.rdse.jujo.utils.startup.MasterCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.io.File;
 import java.io.Serializable;
@@ -25,29 +26,24 @@ public class Master extends AbstractReapedActor {
         return Props.create(Master.class, () -> new Master(masterCommand));
     }
 
-    @Getter
-    @Builder
-    @AllArgsConstructor
+    @Getter @Builder @AllArgsConstructor @NoArgsConstructor
     static class SlaveNodeRegistered implements Serializable {
         private static final long serialVersionUID = -1682543505601299772L;
-        private final Address slaveAddress;
-        private final int numberOfWorkers;
+        private Address slaveAddress;
+        private int numberOfWorkers;
 
     }
 
-    @Getter
-    @Builder
-    @AllArgsConstructor
+    @Getter @Builder @AllArgsConstructor @NoArgsConstructor
     static class SlaveNodeTerminated implements Serializable {
         private static final long serialVersionUID = -3053321777422537935L;
-        private final Address slaveAddress;
+        private Address slaveAddress;
     }
 
-    @Getter
-    @AllArgsConstructor
+    @Getter @AllArgsConstructor @NoArgsConstructor
     static class RequestCorpusPartition implements Serializable {
         private static final long serialVersionUID = 4382490549365244631L;
-        final SinkRef<ByteString> sinkRef;
+        private SinkRef<ByteString> sinkRef;
     }
 
     private final Map<Address, Integer> workersPerSlave = new HashMap<>();

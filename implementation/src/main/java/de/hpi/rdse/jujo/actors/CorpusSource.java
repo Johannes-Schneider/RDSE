@@ -11,6 +11,7 @@ import de.hpi.rdse.jujo.utils.FilePartition;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,11 +23,10 @@ public class CorpusSource extends AbstractReapedActor {
 
     private static final long READ_CHUNK_SIZE = 8192;
 
-    @Getter
-    @Builder
+    @Getter @Builder @AllArgsConstructor @NoArgsConstructor
     static class TransferPartition implements Serializable {
         private static final long serialVersionUID = 4382490549365244631L;
-        final SinkRef<ByteString> sinkRef;
+        private SinkRef<ByteString> sinkRef;
     }
 
     public static Props props(File inputFile, FilePartition filePartition) {

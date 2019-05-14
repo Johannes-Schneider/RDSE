@@ -1,6 +1,7 @@
 package de.hpi.rdse.jujo.actors;
 
 import akka.actor.*;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.HashSet;
@@ -14,6 +15,7 @@ public class Reaper extends AbstractLoggingActor {
         return Props.create(Reaper.class);
     }
 
+    @NoArgsConstructor
     public static class WatchMeMessage implements Serializable {
         private static final long serialVersionUID = -8256224010762827814L;
     }
