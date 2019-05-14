@@ -57,6 +57,9 @@ public class Slave extends AbstractReapedActor {
 
     private void initializeLocalWorkingDirectory() throws IOException {
         this.corpusLocation = Paths.get(this.temporaryWorkingDirectory, CORPUS_DIRECTORY_NAME).toFile();
+        if (corpusLocation.exists()) {
+            return;
+        }
         if(!this.corpusLocation.mkdir()) {
             throw new IOException("Unable to create directory for storing corpus. Check file system permissions.");
         }
