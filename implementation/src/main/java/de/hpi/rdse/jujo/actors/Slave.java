@@ -60,7 +60,7 @@ public class Slave extends AbstractReapedActor {
         if (corpusLocation.exists()) {
             return;
         }
-        if(!this.corpusLocation.mkdir()) {
+        if (!this.corpusLocation.mkdir()) {
             throw new IOException("Unable to create directory for storing corpus. Check file system permissions.");
         }
     }
@@ -106,7 +106,8 @@ public class Slave extends AbstractReapedActor {
     private void handle(AcknowledgeRegistration message) {
         // Cancel any running connect schedule, because we are now connected
         this.cancelRunningConnectSchedule();
-        this.corpusSink.tell(new CorpusSink.RequestCorpusFromMaster(this.corpusLocation), this.self());
+        this.corpusSink.tell(
+                new CorpusSink.RequestCorpusFromMaster(this.corpusLocation, message.getMaster()), this.self());
         this.log().info("Subscription successfully acknowledged by {}.", this.getSender());
     }
 

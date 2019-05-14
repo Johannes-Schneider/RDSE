@@ -40,7 +40,7 @@ public class Master extends AbstractReapedActor {
         private Address slaveAddress;
     }
 
-    @Getter @AllArgsConstructor @NoArgsConstructor
+    @Getter @NoArgsConstructor @AllArgsConstructor
     static class RequestCorpusPartition implements Serializable {
         private static final long serialVersionUID = 4382490549365244631L;
         private SinkRef<ByteString> sinkRef;

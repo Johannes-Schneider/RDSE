@@ -1,5 +1,6 @@
 package de.hpi.rdse.jujo.actors;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
@@ -12,9 +13,9 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.StreamRefs;
 import akka.util.ByteString;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import scala.compat.java8.FutureConverters;
 
 import java.io.File;
 import java.io.Serializable;
@@ -26,10 +27,11 @@ public class CorpusSink extends AbstractReapedActor {
         return Props.create(CorpusSink.class, CorpusSink::new);
     }
 
-    @AllArgsConstructor @Getter @NoArgsConstructor
+    @Getter @Builder @NoArgsConstructor @AllArgsConstructor
     static class RequestCorpusFromMaster implements Serializable {
         private static final long serialVersionUID = -4024260649244404785L;
         private File targetDestination;
+        private ActorRef corpusSource;
     }
 
     private final Materializer materializer;
@@ -54,9 +56,9 @@ public class CorpusSink extends AbstractReapedActor {
                 .to(sink)
                 .run(this.materializer);
 
-        Patterns.pipe(FutureConverters.toScala(sinkRef.thenApply(Master.RequestCorpusPartition::new)),
+        Patterns.pipe(sinkRef.thenApply(Master.RequestCorpusPartition::new),
                 context().dispatcher())
-                .to(this.sender());
+                .to(message.getCorpusSource());
     }
 
     private Sink<ByteString, CompletionStage<IOResult>> createFileSink(File targetDestination) {
