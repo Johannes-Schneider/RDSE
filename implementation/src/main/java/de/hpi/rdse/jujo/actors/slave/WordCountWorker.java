@@ -1,7 +1,8 @@
-package de.hpi.rdse.jujo.actors;
+package de.hpi.rdse.jujo.actors.slave;
 
 import akka.actor.Props;
 import akka.util.ByteString;
+import de.hpi.rdse.jujo.actors.AbstractReapedActor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

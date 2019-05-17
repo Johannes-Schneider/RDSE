@@ -1,4 +1,4 @@
-package de.hpi.rdse.jujo.actors;
+package de.hpi.rdse.jujo.actors.master;
 
 import akka.NotUsed;
 import akka.actor.Props;
@@ -7,6 +7,7 @@ import akka.stream.Materializer;
 import akka.stream.SinkRef;
 import akka.stream.javadsl.Source;
 import akka.util.ByteString;
+import de.hpi.rdse.jujo.actors.AbstractReapedActor;
 import de.hpi.rdse.jujo.utils.FilePartition;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

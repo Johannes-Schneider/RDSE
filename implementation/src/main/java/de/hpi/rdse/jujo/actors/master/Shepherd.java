@@ -1,6 +1,8 @@
-package de.hpi.rdse.jujo.actors;
+package de.hpi.rdse.jujo.actors.master;
 
 import akka.actor.*;
+import de.hpi.rdse.jujo.actors.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.slave.Slave;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,13 +23,12 @@ public class Shepherd extends AbstractReapedActor {
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class SlaveNodeRegistrationMessage implements Serializable {
         private static final long serialVersionUID = 2517545349430030374L;
-        private int numberOfWorkers;
     }
 
     private final ActorRef master;
     private final Set<ActorRef> slaves = new HashSet<>();
 
-    public Shepherd(final ActorRef master) {
+    private Shepherd(final ActorRef master) {
         this.master = master;
         this.context().watch(master);
     }
@@ -37,7 +38,6 @@ public class Shepherd extends AbstractReapedActor {
         for (ActorRef slave : this.slaves) {
             slave.tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
-
         super.postStop();
     }
 
@@ -51,32 +51,23 @@ public class Shepherd extends AbstractReapedActor {
     }
 
     private void handle(SlaveNodeRegistrationMessage message) {
-        if (!this.slaves.add(sender())) {
+        if (!this.slaves.add(this.sender())) {
             return;
         }
-        this.log().info(String.format("New subscription: %s with %d available workers", sender(), message.numberOfWorkers));
+        this.log().info(String.format("New subscription: %s with available workers", this.sender()));
 
-        this.sender().tell(Slave.AcknowledgeRegistration.builder().master(master).build(), self());
+        this.sender().tell(Slave.AcknowledgeRegistration.builder().build(), this.self());
         this.context().watch(sender());
-
-        master.tell(
-                Master.SlaveNodeRegistered.builder()
-                        .slaveAddress(this.sender().path().address())
-                        .numberOfWorkers(message.numberOfWorkers)
-                        .build(),
-                self()
-        );
+        this.master.tell(Master.SlaveNodeRegistered.builder().slave(this.sender()).build(), this.self());
     }
 
     private void handle(Terminated message) {
-        if (sender() == master) {
+        if (this.sender() == this.master) {
             this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
             return;
         }
 
-        slaves.remove(this.sender());
-        master.tell(Master.SlaveNodeTerminated.builder()
-                        .slaveAddress(this.sender().path().address())
-                        .build(), this.self());
+        this.slaves.remove(this.sender());
+        this.master.tell(Master.SlaveNodeTerminated.builder().slave(this.sender()).build(), this.self());
     }
 }

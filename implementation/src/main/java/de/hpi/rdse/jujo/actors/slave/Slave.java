@@ -1,7 +1,9 @@
-package de.hpi.rdse.jujo.actors;
+package de.hpi.rdse.jujo.actors.slave;
 
 import akka.actor.*;
 import akka.remote.DisassociatedEvent;
+import de.hpi.rdse.jujo.actors.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.master.Shepherd;
 import de.hpi.rdse.jujo.utils.startup.SlaveCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,7 +37,6 @@ public class Slave extends AbstractReapedActor {
     @Getter @Builder @AllArgsConstructor @NoArgsConstructor
     public static class AcknowledgeRegistration implements Serializable {
         private static final long serialVersionUID = 3226726675135579564L;
-        private ActorRef master;
     }
 
     private final ActorRef corpusSink;
