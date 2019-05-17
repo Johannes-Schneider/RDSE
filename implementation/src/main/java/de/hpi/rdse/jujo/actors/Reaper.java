@@ -41,7 +41,7 @@ public class Reaper extends AbstractLoggingActor {
 
     @Override
     public Receive createReceive() {
-        return receiveBuilder()
+        return this.receiveBuilder()
                 .match(WatchMeMessage.class, this::handle)
                 .match(Terminated.class, this::handle)
                 .matchAny(object -> this.log().error(this.getClass().getName() + " received unknown message: " + object.toString()))

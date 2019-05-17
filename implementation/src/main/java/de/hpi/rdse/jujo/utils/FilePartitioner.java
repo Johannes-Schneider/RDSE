@@ -18,19 +18,18 @@ public class FilePartitioner {
     private final File file;
     private final FileInputStream fileStream;
     private final long chunkSize;
-    private long currentFileOffset;
+    private long currentFileOffset = 0;
     private final Pattern whiteSpacePattern = Pattern.compile("\\s");
 
-    public FilePartitioner(File file, int numberOfPartitions) {
-        this.file = file;
-        fileStream = createFileStream();
-        chunkSize = file.length() / numberOfPartitions;
-        currentFileOffset = 0;
+    public FilePartitioner(String filePath, int numberOfPartitions) {
+        this.file = new File(filePath);
+        this.fileStream = createFileStream();
+        this.chunkSize = this.file.length() / numberOfPartitions;
     }
 
     private FileInputStream createFileStream() {
         try {
-            return new FileInputStream(file);
+            return new FileInputStream(this.file);
         } catch (FileNotFoundException e) {
             Log.error("exception while creating file stream", e);
             return null;
@@ -38,16 +37,30 @@ public class FilePartitioner {
     }
 
     public FilePartition getNextPartition() {
-        if (currentFileOffset >= file.length()) {
+        if (this.fileStreamIsAtEnd()) {
+            this.closeFileStream();
             return FilePartition.empty();
         }
 
         try {
-            long bufferSize = Math.min(chunkSize, file.length() - currentFileOffset);
+            long bufferSize = Math.min(this.chunkSize, this.file.length() - this.currentFileOffset);
             return getNextPartition(bufferSize);
         } catch (IOException e) {
             Log.error("exception while getting next partition: this should have not happened", e);
+            this.closeFileStream();
             return FilePartition.empty();
+        }
+    }
+
+    private boolean fileStreamIsAtEnd() {
+        return this.currentFileOffset >= this.file.length();
+    }
+
+    private void closeFileStream() {
+        try {
+            this.fileStream.close();
+        } catch (IOException e) {
+            Log.error("exception while closing file stream: this should have not happened", e);
         }
     }
 
@@ -63,6 +76,11 @@ public class FilePartitioner {
                 .build();
 
         currentFileOffset = endOffset;
+
+        if (this.fileStreamIsAtEnd()) {
+            this.closeFileStream();
+        }
+
         return result;
     }
 

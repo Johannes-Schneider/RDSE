@@ -4,9 +4,10 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Address;
 import com.typesafe.config.Config;
-import de.hpi.rdse.jujo.actors.master.Master;
 import de.hpi.rdse.jujo.actors.Reaper;
+import de.hpi.rdse.jujo.actors.master.Master;
 import de.hpi.rdse.jujo.actors.master.Shepherd;
+import de.hpi.rdse.jujo.actors.slave.Sheep;
 import de.hpi.rdse.jujo.actors.slave.Slave;
 import de.hpi.rdse.jujo.utils.AkkaUtils;
 import de.hpi.rdse.jujo.utils.startup.MasterCommand;
@@ -55,10 +56,10 @@ public class Bootstrap {
         actorSystem.actorOf(Reaper.props(), Reaper.DEFAULT_NAME);
 
         final ActorRef slave = actorSystem.actorOf(Slave.props(slaveCommand), Slave.DEFAULT_NAME);
+        final ActorRef sheep = actorSystem.actorOf(Sheep.props(slave));
 
-        slave.tell(
-                Slave.RegisterAtShepherd.builder()
-                        .numberOfLocalWorkers(slaveCommand.getNumberOfWorkers())
+        sheep.tell(
+                Sheep.RegisterAtShepherd.builder()
                         .shepherdAddress(new Address(
                                 "akka.tcp",
                                 DEFAULT_MASTER_SYSTEM_NAME,

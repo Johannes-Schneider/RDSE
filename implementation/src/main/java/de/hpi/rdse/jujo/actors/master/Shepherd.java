@@ -1,11 +1,13 @@
 package de.hpi.rdse.jujo.actors.master;
 
-import akka.actor.*;
+import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
+import akka.actor.Props;
+import akka.actor.Terminated;
 import de.hpi.rdse.jujo.actors.AbstractReapedActor;
-import de.hpi.rdse.jujo.actors.slave.Slave;
+import de.hpi.rdse.jujo.actors.slave.Sheep;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
@@ -20,9 +22,10 @@ public class Shepherd extends AbstractReapedActor {
         return Props.create(Shepherd.class, () -> new Shepherd(master));
     }
 
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    @Getter @NoArgsConstructor @AllArgsConstructor
     public static class SlaveNodeRegistrationMessage implements Serializable {
         private static final long serialVersionUID = 2517545349430030374L;
+        private ActorRef slave;
     }
 
     private final ActorRef master;
@@ -43,11 +46,10 @@ public class Shepherd extends AbstractReapedActor {
 
     @Override
     public Receive createReceive() {
-        return receiveBuilder()
+        return this.defaultReceiveBuilder()
                 .match(SlaveNodeRegistrationMessage.class, this::handle)
                 .match(Terminated.class, this::handle)
-                .matchAny(this::handleAny)
-                .build();
+                                .build();
     }
 
     private void handle(SlaveNodeRegistrationMessage message) {
@@ -56,9 +58,9 @@ public class Shepherd extends AbstractReapedActor {
         }
         this.log().info(String.format("New subscription: %s with available workers", this.sender()));
 
-        this.sender().tell(Slave.AcknowledgeRegistration.builder().build(), this.self());
+        this.sender().tell(new Sheep.AcknowledgeRegistration(), this.self());
         this.context().watch(sender());
-        this.master.tell(Master.SlaveNodeRegistered.builder().slave(this.sender()).build(), this.self());
+        this.master.tell(message, this.self());
     }
 
     private void handle(Terminated message) {
