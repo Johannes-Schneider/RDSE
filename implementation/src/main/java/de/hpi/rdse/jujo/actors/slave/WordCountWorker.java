@@ -36,7 +36,8 @@ public class WordCountWorker extends AbstractReapedActor {
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                 .match(ProcessCorpusChunk.class, this::handle)
-                                .build();
+                .matchAny(this::handleAny)
+                .build();
     }
 
     private void handle(ProcessCorpusChunk message) {

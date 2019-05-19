@@ -46,6 +46,7 @@ public class CorpusDistributor extends AbstractReapedActor {
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                 .match(Shepherd.SlaveNodeRegistrationMessage.class, this::handle)
+                .matchAny(this::handleAny)
                 .build();
     }
 

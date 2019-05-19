@@ -56,6 +56,7 @@ public class CorpusReceiver extends AbstractReapedActor {
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                 .match(ProcessCorpusPartition.class, this::handle)
+                .matchAny(this::handleAny)
                 .build();
     }
 

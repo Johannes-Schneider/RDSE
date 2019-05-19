@@ -36,6 +36,7 @@ public class Slave extends AbstractReapedActor {
         return this.defaultReceiveBuilder()
                 .match(DisassociatedEvent.class, this::handle)
                 .match(CorpusReceiver.ProcessCorpusPartition.class, this::handle)
+                .matchAny(this::handleAny)
                 .build();
     }
 

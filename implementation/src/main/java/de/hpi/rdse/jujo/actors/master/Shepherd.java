@@ -49,7 +49,8 @@ public class Shepherd extends AbstractReapedActor {
         return this.defaultReceiveBuilder()
                 .match(SlaveNodeRegistrationMessage.class, this::handle)
                 .match(Terminated.class, this::handle)
-                                .build();
+                .matchAny(this::handleAny)
+                .build();
     }
 
     private void handle(SlaveNodeRegistrationMessage message) {

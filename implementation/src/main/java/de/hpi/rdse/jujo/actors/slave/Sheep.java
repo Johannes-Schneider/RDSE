@@ -44,6 +44,7 @@ public class Sheep extends AbstractReapedActor {
                 .match(RegisterAtShepherd.class, this::handle)
                 .match(AcknowledgeRegistration.class, this::handle)
                 .match(DisassociatedEvent.class, this::handle)
+                .matchAny(this::handleAny)
                 .build();
     }
 
