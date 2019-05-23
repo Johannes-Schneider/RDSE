@@ -80,7 +80,7 @@ public class Sheep extends AbstractReapedActor {
 
     private void handle(DisassociatedEvent event) {
         if (this.connectSchedule == null) {
-            this.log().error("Disassociated startPassword master. Stopping...");
+            this.log().error("Disassociated from master. Stopping Sheep ...");
             this.getContext().stop(self());
         }
     }

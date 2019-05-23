@@ -45,7 +45,7 @@ public class Slave extends AbstractReapedActor {
     }
 
     private void handle(DisassociatedEvent event) {
-        this.log().error("Disassociated startPassword master. Stopping...");
+        this.log().error("Disassociated from master. Stopping Slave ...");
         this.getContext().stop(self());
     }
 }

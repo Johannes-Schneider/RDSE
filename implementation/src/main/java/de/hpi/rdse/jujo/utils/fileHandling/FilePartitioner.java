@@ -1,4 +1,4 @@
-package de.hpi.rdse.jujo.utils;
+package de.hpi.rdse.jujo.utils.fileHandling;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,6 +14,9 @@ import java.util.regex.Pattern;
 public class FilePartitioner {
 
     private static final Logger Log = LogManager.getLogger(FilePartitioner.class);
+
+    public static final int SEEK_CHUNK_SIZE = 100;
+    private static final String FILE_ENCODING = "UTF-8";
 
     private final File file;
     private final FileInputStream fileStream;
@@ -67,15 +70,15 @@ public class FilePartitioner {
     private FilePartition getNextPartition(long bufferSize) throws IOException {
         bufferSize = Math.min(Integer.MAX_VALUE, bufferSize);
 
-        fileStream.getChannel().position(currentFileOffset + bufferSize);
-        long endOffset = getPositionOfNextWhiteSpace() + currentFileOffset;
+        this.fileStream.getChannel().position(this.currentFileOffset + bufferSize);
+        long endOffset = getPositionOfNextWhiteSpace();
 
         FilePartition result = FilePartition.builder()
-                .readOffset(currentFileOffset)
-                .readLength(endOffset - currentFileOffset)
+                .readOffset(this.currentFileOffset)
+                .readLength(endOffset - this.currentFileOffset)
                 .build();
 
-        currentFileOffset = endOffset;
+        this.currentFileOffset = endOffset;
 
         if (this.fileStreamIsAtEnd()) {
             this.closeFileStream();
@@ -86,26 +89,19 @@ public class FilePartitioner {
 
     private long getPositionOfNextWhiteSpace() throws IOException {
         Matcher matcher;
-        int tinyChunkSize = 100;
-        int totalOffset = 0;
+        while (this.fileStream.getChannel().position() < this.file.length()) {
+            this.fileStream.getChannel().position(fileStream.getChannel().position() + SEEK_CHUNK_SIZE);
 
-        do {
-            byte[] buffer = new byte[tinyChunkSize];
+            byte[] buffer = new byte[SEEK_CHUNK_SIZE];
             int actualRead = fileStream.read(buffer);
-            totalOffset += actualRead;
-
-            if (actualRead < tinyChunkSize) {
-                // end of file
-                return totalOffset;
-            }
-
-            String chunk = new String(buffer, Charset.forName("UTF-8"));
+            String chunk = new String(buffer, 0, actualRead, Charset.forName(FILE_ENCODING));
             matcher = whiteSpacePattern.matcher(chunk);
 
             if (matcher.find()) {
                 // finally found a white space
-                return matcher.end();
+                return this.fileStream.getChannel().position() - SEEK_CHUNK_SIZE + matcher.end();
             }
-        } while (true);
+        }
+        return this.file.length();
     }
 }

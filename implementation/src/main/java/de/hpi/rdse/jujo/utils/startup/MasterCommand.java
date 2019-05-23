@@ -20,6 +20,9 @@ public class MasterCommand extends CommandBase {
     @Parameter(names = {"-i", "--input"}, description = "text corpus to train on", validateValueWith = FileValidator.class)
     String pathToInputFile;
 
+    @Parameter(names = {"-t", "--temporary"}, description = "temporary working directory", validateValueWith = DirectoryValidator.class)
+    String temporaryWorkingDirectory;
+
     @Parameter(names = {"--slaves"}, description = "number of slaves to wait for")
     int numberOfSlaves;
 }

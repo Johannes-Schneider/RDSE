@@ -1,4 +1,4 @@
-package de.hpi.rdse.jujo.utils;
+package de.hpi.rdse.jujo.utils.fileHandling;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,5 +13,9 @@ public class FilePartition {
 
     public static FilePartition empty() {
         return new FilePartition(0, 0);
+    }
+
+    public long numberOfChunks(long chunkSize) {
+        return (long) Math.ceil((double) this.readLength / (double) chunkSize);
     }
 }

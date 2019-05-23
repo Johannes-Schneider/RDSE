@@ -10,21 +10,20 @@ import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.util.ByteString;
+import com.esotericsoftware.minlog.Log;
 import de.hpi.rdse.jujo.actors.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
-import de.hpi.rdse.jujo.utils.FilePartition;
-import de.hpi.rdse.jujo.utils.FilePartitioner;
-import de.hpi.rdse.jujo.utils.fileHandling.FileIterator;
+import de.hpi.rdse.jujo.utils.fileHandling.FilePartionIterator;
+import de.hpi.rdse.jujo.utils.fileHandling.FilePartition;
+import de.hpi.rdse.jujo.utils.fileHandling.FilePartitioner;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 public class CorpusDistributor extends AbstractReapedActor {
-
-    private static final int READ_CHUNK_SIZE = 8192;
 
     public static Props props(int expectedNumberOfSlaves, String corpusFilePath) {
         return Props.create(CorpusDistributor.class,
@@ -46,7 +45,6 @@ public class CorpusDistributor extends AbstractReapedActor {
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                 .match(Shepherd.SlaveNodeRegistrationMessage.class, this::handle)
-                .matchAny(this::handleAny)
                 .build();
     }
 
@@ -64,13 +62,11 @@ public class CorpusDistributor extends AbstractReapedActor {
     private Source<ByteString, NotUsed> createCorpusSource() {
         FilePartition filePartition = this.filePartitioner.getNextPartition();
         try {
-            FileInputStream stream = new FileInputStream(this.corpusFilePath);
-            return Source.fromIterator(() -> new FileIterator(stream, filePartition.getReadOffset(),
-                    filePartition.getReadLength(), READ_CHUNK_SIZE));
-
-        } catch (FileNotFoundException e) {
-            this.log().error(e, "unable to create corpus source");
-            return Source.empty();
+            FilePartionIterator filePartionIterator = new FilePartionIterator(filePartition, new File(this.corpusFilePath));
+            return Source.<ByteString>fromIterator(() -> filePartionIterator);
+        } catch (IOException e) {
+            Log.error("Unable to create iterator for FilePartition.", e);
+            return Source.<ByteString>empty();
         }
     }
 }

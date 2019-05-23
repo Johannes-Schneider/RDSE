@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import de.hpi.rdse.jujo.actors.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.WordEndpoint;
+import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
 import de.hpi.rdse.jujo.utils.startup.MasterCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,6 +30,7 @@ public class Master extends AbstractReapedActor {
     private final ActorRef wordEndpointDistributor;
     private final ActorRef wordEndpoint;
     private final ActorRef corpusDistributor;
+    private final ActorRef corpusReceiver;
     private final boolean contributesWorkers;
 
     private Master(MasterCommand masterCommand) {
@@ -36,6 +38,8 @@ public class Master extends AbstractReapedActor {
         this.wordEndpoint = this.context().actorOf(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
         this.wordEndpointDistributor = this.createWordEndpointDistributor(masterCommand);
         this.corpusDistributor = this.createCorpusDistributor(masterCommand);
+        this.corpusReceiver = this.context().actorOf(
+                CorpusReceiver.props(masterCommand.getTemporaryWorkingDirectory()));
         this.self().tell(new Shepherd.SlaveNodeRegistrationMessage(this.self()), this.self());
     }
 
@@ -60,8 +64,13 @@ public class Master extends AbstractReapedActor {
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                 .match(Shepherd.SlaveNodeRegistrationMessage.class, this::handle)
+                .match(CorpusReceiver.ProcessCorpusPartition.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
+    }
+
+    private void handle(CorpusReceiver.ProcessCorpusPartition message) {
+        this.corpusReceiver.tell(message, this.sender());
     }
 
     private void handle(Shepherd.SlaveNodeRegistrationMessage message) {

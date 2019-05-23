@@ -4,6 +4,7 @@ import akka.actor.Props;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
+import akka.stream.javadsl.FileIO;
 import akka.stream.javadsl.Sink;
 import akka.util.ByteString;
 import de.hpi.rdse.jujo.actors.AbstractReapedActor;
@@ -16,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class CorpusReceiver extends AbstractReapedActor {
@@ -38,7 +40,7 @@ public class CorpusReceiver extends AbstractReapedActor {
 
     private CorpusReceiver(String temporaryWorkingDirectory) throws IOException {
         this.corpusLocation = this.createLocalWorkingDirectory(temporaryWorkingDirectory);
-        this.materializer = ActorMaterializer.create(this.context().system());
+        this.materializer = ActorMaterializer.create(this.context());
     }
 
     private File createLocalWorkingDirectory(String temporaryWorkingDirectory) throws IOException {
@@ -46,7 +48,7 @@ public class CorpusReceiver extends AbstractReapedActor {
         if (corpusLocation.exists()) {
             return corpusLocation;
         }
-        if (!this.corpusLocation.mkdir()) {
+        if (!corpusLocation.mkdir()) {
             throw new IOException("Unable to create directory for storing corpus. Check file system permissions.");
         }
         return corpusLocation;
@@ -61,10 +63,7 @@ public class CorpusReceiver extends AbstractReapedActor {
     }
 
     private void handle(ProcessCorpusPartition message) {
-        message.getSource().getSource().runWith(Sink.foreach(this::processCorpusChunk), this.materializer);
-    }
-
-    private void processCorpusChunk(ByteString chunk) {
-        System.out.println(chunk.decodeString(DEFAULT_CHARSET));
+        message.getSource().getSource().runWith(
+                FileIO.toPath(Paths.get(this.corpusLocation.getPath(), "corpus.txt")), this.materializer);
     }
 }
