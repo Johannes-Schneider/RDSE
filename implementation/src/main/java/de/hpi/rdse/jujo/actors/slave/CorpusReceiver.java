@@ -1,13 +1,17 @@
 package de.hpi.rdse.jujo.actors.slave;
 
+import akka.Done;
+import akka.NotUsed;
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.FileIO;
-import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Flow;
 import akka.util.ByteString;
-import de.hpi.rdse.jujo.actors.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,17 +20,15 @@ import lombok.NoArgsConstructor;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.CompletionStage;
 
 public class CorpusReceiver extends AbstractReapedActor {
 
     private static final String CORPUS_DIRECTORY_NAME = "corpus";
-    private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
 
-    public static Props props(String temporaryWorkingDirectory) {
-        return Props.create(CorpusReceiver.class, () -> new CorpusReceiver(temporaryWorkingDirectory));
+    public static Props props(ActorRef supervisor, String temporaryWorkingDirectory) {
+        return Props.create(CorpusReceiver.class, () -> new CorpusReceiver(supervisor, temporaryWorkingDirectory));
     }
 
     @Builder @NoArgsConstructor @AllArgsConstructor @Getter
@@ -35,10 +37,12 @@ public class CorpusReceiver extends AbstractReapedActor {
         private SourceRef<ByteString> source;
     }
 
+    private final ActorRef supervisor;
     private final File corpusLocation;
     private final Materializer materializer;
 
-    private CorpusReceiver(String temporaryWorkingDirectory) throws IOException {
+    private CorpusReceiver(ActorRef supervisor, String temporaryWorkingDirectory) throws IOException {
+        this.supervisor = supervisor;
         this.corpusLocation = this.createLocalWorkingDirectory(temporaryWorkingDirectory);
         this.materializer = ActorMaterializer.create(this.context());
     }
@@ -63,7 +67,22 @@ public class CorpusReceiver extends AbstractReapedActor {
     }
 
     private void handle(ProcessCorpusPartition message) {
-        message.getSource().getSource().runWith(
-                FileIO.toPath(Paths.get(this.corpusLocation.getPath(), "corpus.txt")), this.materializer);
+        message.getSource().getSource()
+                .via(Flow.of(ByteString.class).map(this::handleCorpusChunk))
+                .watchTermination(this::handleTermination)
+                .runWith(FileIO.toPath(Paths.get(this.corpusLocation.getPath(), "corpus.txt")), this.materializer);
+    }
+
+    private ByteString handleCorpusChunk(ByteString chunk) {
+        this.supervisor.tell(new WorkerCoordinator.ProcessCorpusChunk(chunk), this.self());
+        return chunk;
+    }
+
+    private NotUsed handleTermination(NotUsed not, CompletionStage<Done> stage) {
+        stage.thenApply(x -> {
+            this.supervisor.tell(new WorkerCoordinator.CorpusTransferCompleted(), this.self());
+            return x;
+        });
+        return not;
     }
 }

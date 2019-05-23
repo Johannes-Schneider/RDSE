@@ -3,11 +3,9 @@ package de.hpi.rdse.jujo.actors.slave;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.remote.DisassociatedEvent;
-import de.hpi.rdse.jujo.actors.AbstractReapedActor;
-import de.hpi.rdse.jujo.actors.WordEndpoint;
+import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
 import de.hpi.rdse.jujo.utils.startup.SlaveCommand;
-
-import java.io.IOException;
 
 public class Slave extends AbstractReapedActor {
 
@@ -17,35 +15,33 @@ public class Slave extends AbstractReapedActor {
         return Props.create(Slave.class, () -> new Slave(slaveCommand));
     }
 
-    private final ActorRef wordEndpoint;
-    private final ActorRef corpusReceiver;
-
     @Override
     public void preStart() throws Exception {
         super.preStart();
         this.getContext().getSystem().eventStream().subscribe(this.getSelf(), DisassociatedEvent.class);
     }
 
+    private final ActorRef workerCoordinator;
+
     private Slave(SlaveCommand slaveCommand) {
-        this.wordEndpoint = this.context().actorOf(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
-        this.corpusReceiver = this.context().actorOf(CorpusReceiver.props(slaveCommand.getTemporaryWorkingDirectory()));
+        this.workerCoordinator = this.context().actorOf(
+                WorkerCoordinator.props(slaveCommand.getTemporaryWorkingDirectory()));
     }
 
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                 .match(DisassociatedEvent.class, this::handle)
-                .match(CorpusReceiver.ProcessCorpusPartition.class, this::handle)
-                .matchAny(this::handleAny)
+                .matchAny(this::redirectToWorkerCoordinator)
                 .build();
-    }
-
-    private void handle(CorpusReceiver.ProcessCorpusPartition message) {
-        this.corpusReceiver.tell(message, this.sender());
     }
 
     private void handle(DisassociatedEvent event) {
         this.log().error("Disassociated from master. Stopping Slave ...");
         this.getContext().stop(self());
+    }
+
+    private void redirectToWorkerCoordinator(Object message) {
+        this.workerCoordinator.tell(message, this.sender());
     }
 }

@@ -1,4 +1,4 @@
-package de.hpi.rdse.jujo.actors;
+package de.hpi.rdse.jujo.actors.common;
 
 import akka.actor.AbstractLoggingActor;
 import akka.japi.pf.ReceiveBuilder;

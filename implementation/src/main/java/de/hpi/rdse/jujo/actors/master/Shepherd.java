@@ -4,7 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
-import de.hpi.rdse.jujo.actors.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.slave.Sheep;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

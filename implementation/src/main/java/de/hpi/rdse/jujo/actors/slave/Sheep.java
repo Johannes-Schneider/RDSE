@@ -2,7 +2,7 @@ package de.hpi.rdse.jujo.actors.slave;
 
 import akka.actor.*;
 import akka.remote.DisassociatedEvent;
-import de.hpi.rdse.jujo.actors.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.master.Shepherd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

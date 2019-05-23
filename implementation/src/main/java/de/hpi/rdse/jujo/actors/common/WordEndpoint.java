@@ -1,6 +1,7 @@
-package de.hpi.rdse.jujo.actors;
+package de.hpi.rdse.jujo.actors.common;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 public class WordEndpoint extends AbstractReapedActor {
 
@@ -24,13 +26,24 @@ public class WordEndpoint extends AbstractReapedActor {
         private List<ActorRef> endpoints;
     }
 
-    private WordEndpoint() {
-
+    @AllArgsConstructor @NoArgsConstructor @Getter
+    public static class WordsCounted implements Serializable {
+        private static final long serialVersionUID = -5661255174425103187L;
+        private Map<String, Long> wordCounts;
     }
+
+    private WordEndpoint() { }
 
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
+                .match(WordsCounted.class, this::handle)
+                .matchAny(this::handleAny)
                 .build();
+    }
+
+    private void handle(WordsCounted message) {
+
+        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 }

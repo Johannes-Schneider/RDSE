@@ -4,7 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Address;
 import com.typesafe.config.Config;
-import de.hpi.rdse.jujo.actors.Reaper;
+import de.hpi.rdse.jujo.actors.common.Reaper;
 import de.hpi.rdse.jujo.actors.master.Master;
 import de.hpi.rdse.jujo.actors.master.Shepherd;
 import de.hpi.rdse.jujo.actors.slave.Sheep;

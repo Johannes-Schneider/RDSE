@@ -1,4 +1,4 @@
-package de.hpi.rdse.jujo.actors;
+package de.hpi.rdse.jujo.actors.common;
 
 import akka.actor.*;
 import lombok.NoArgsConstructor;

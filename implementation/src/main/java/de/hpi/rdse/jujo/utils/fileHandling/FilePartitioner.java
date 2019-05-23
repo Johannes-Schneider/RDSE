@@ -1,5 +1,6 @@
 package de.hpi.rdse.jujo.utils.fileHandling;
 
+import com.google.common.primitives.Bytes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -7,22 +8,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class FilePartitioner {
 
     private static final Logger Log = LogManager.getLogger(FilePartitioner.class);
 
-    public static final int SEEK_CHUNK_SIZE = 100;
-    private static final String FILE_ENCODING = "UTF-8";
+    private static final int SEEK_CHUNK_SIZE = 100;
 
     private final File file;
     private final FileInputStream fileStream;
     private final long chunkSize;
     private long currentFileOffset = 0;
-    private final Pattern whiteSpacePattern = Pattern.compile("\\s");
 
     public FilePartitioner(String filePath, int numberOfPartitions) {
         this.file = new File(filePath);
@@ -78,7 +74,8 @@ public class FilePartitioner {
                 .readLength(endOffset - this.currentFileOffset)
                 .build();
 
-        this.currentFileOffset = endOffset;
+        // +1 removes the delimiter (whitespace)
+        this.currentFileOffset = endOffset + 1;
 
         if (this.fileStreamIsAtEnd()) {
             this.closeFileStream();
@@ -88,18 +85,15 @@ public class FilePartitioner {
     }
 
     private long getPositionOfNextWhiteSpace() throws IOException {
-        Matcher matcher;
         while (this.fileStream.getChannel().position() < this.file.length()) {
             this.fileStream.getChannel().position(fileStream.getChannel().position() + SEEK_CHUNK_SIZE);
 
             byte[] buffer = new byte[SEEK_CHUNK_SIZE];
-            int actualRead = fileStream.read(buffer);
-            String chunk = new String(buffer, 0, actualRead, Charset.forName(FILE_ENCODING));
-            matcher = whiteSpacePattern.matcher(chunk);
+            fileStream.read(buffer);
+            int whitespaceIndex = Bytes.indexOf(buffer, (byte) 0x20);
 
-            if (matcher.find()) {
-                // finally found a white space
-                return this.fileStream.getChannel().position() - SEEK_CHUNK_SIZE + matcher.end();
+            if (whitespaceIndex >= 0) {
+                return this.fileStream.getChannel().position() - SEEK_CHUNK_SIZE + whitespaceIndex;
             }
         }
         return this.file.length();

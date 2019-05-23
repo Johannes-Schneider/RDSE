@@ -11,7 +11,7 @@ import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.util.ByteString;
 import com.esotericsoftware.minlog.Log;
-import de.hpi.rdse.jujo.actors.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
 import de.hpi.rdse.jujo.utils.fileHandling.FilePartionIterator;
 import de.hpi.rdse.jujo.utils.fileHandling.FilePartition;

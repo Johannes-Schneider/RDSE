@@ -3,8 +3,8 @@ package de.hpi.rdse.jujo.actors.master;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
-import de.hpi.rdse.jujo.actors.AbstractReapedActor;
-import de.hpi.rdse.jujo.actors.WordEndpoint;
+import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.common.WordEndpoint;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -33,7 +33,7 @@ public class WordEndpointDistributor extends AbstractReapedActor {
 
     private void handle(Shepherd.SlaveNodeRegistrationMessage message) {
         ActorSelection wordEndpoint = this.context().system().actorSelection(
-                message.getSlave().path() + "/" + WordEndpoint.DEFAULT_NAME);
+                message.getSlave().path() + "/*/" + WordEndpoint.DEFAULT_NAME);
         wordEndpoint.tell(new AbstractReapedActor.Resolve(), this.self());
     }
 

@@ -2,8 +2,9 @@ package de.hpi.rdse.jujo.actors.master;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import de.hpi.rdse.jujo.actors.AbstractReapedActor;
-import de.hpi.rdse.jujo.actors.WordEndpoint;
+import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.common.WordEndpoint;
+import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
 import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
 import de.hpi.rdse.jujo.utils.startup.MasterCommand;
 import lombok.AllArgsConstructor;
@@ -28,18 +29,16 @@ public class Master extends AbstractReapedActor {
     }
 
     private final ActorRef wordEndpointDistributor;
-    private final ActorRef wordEndpoint;
     private final ActorRef corpusDistributor;
-    private final ActorRef corpusReceiver;
     private final boolean contributesWorkers;
+    private final ActorRef workerCoordinator;
 
     private Master(MasterCommand masterCommand) {
         this.contributesWorkers = masterCommand.getNumberOfWorkers() > 0;
-        this.wordEndpoint = this.context().actorOf(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
         this.wordEndpointDistributor = this.createWordEndpointDistributor(masterCommand);
         this.corpusDistributor = this.createCorpusDistributor(masterCommand);
-        this.corpusReceiver = this.context().actorOf(
-                CorpusReceiver.props(masterCommand.getTemporaryWorkingDirectory()));
+        this.workerCoordinator = this.context().actorOf(
+                WorkerCoordinator.props(masterCommand.getTemporaryWorkingDirectory()));
         this.self().tell(new Shepherd.SlaveNodeRegistrationMessage(this.self()), this.self());
     }
 
@@ -64,17 +63,16 @@ public class Master extends AbstractReapedActor {
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                 .match(Shepherd.SlaveNodeRegistrationMessage.class, this::handle)
-                .match(CorpusReceiver.ProcessCorpusPartition.class, this::handle)
-                .matchAny(this::handleAny)
+                .matchAny(this::redirectToWorkerCoordinator)
                 .build();
-    }
-
-    private void handle(CorpusReceiver.ProcessCorpusPartition message) {
-        this.corpusReceiver.tell(message, this.sender());
     }
 
     private void handle(Shepherd.SlaveNodeRegistrationMessage message) {
         this.wordEndpointDistributor.tell(message, this.self());
         this.corpusDistributor.tell(message, this.self());
+    }
+
+    private void redirectToWorkerCoordinator(Object message) {
+        this.workerCoordinator.tell(message, this.sender());
     }
 }

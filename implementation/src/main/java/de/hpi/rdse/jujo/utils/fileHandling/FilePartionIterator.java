@@ -14,7 +14,7 @@ public class FilePartionIterator implements Iterator<ByteString> {
 
     private static final Logger Log = LogManager.getLogger(FilePartionIterator.class);
 
-    private static final int READ_CHUNK_SIZE = 1024;
+    public static final int CHUNK_SIZE = 1024;
 
     private final FileInputStream inputStream;
     private final long readEnd;
@@ -44,7 +44,7 @@ public class FilePartionIterator implements Iterator<ByteString> {
 
     private int nextElementSize() {
         try {
-            return (int) Math.min(READ_CHUNK_SIZE, this.readEnd - this.inputStream.getChannel().position());
+            return (int) Math.min(CHUNK_SIZE, this.readEnd - this.inputStream.getChannel().position());
         } catch (IOException e) {
             Log.error("Unable to calculate next element size for network transfer.", e);
             this.closeFileStream();
