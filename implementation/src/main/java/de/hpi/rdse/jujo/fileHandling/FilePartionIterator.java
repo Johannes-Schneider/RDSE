@@ -1,4 +1,4 @@
-package de.hpi.rdse.jujo.utils.fileHandling;
+package de.hpi.rdse.jujo.fileHandling;
 
 import akka.util.ByteString;
 import org.apache.logging.log4j.LogManager;

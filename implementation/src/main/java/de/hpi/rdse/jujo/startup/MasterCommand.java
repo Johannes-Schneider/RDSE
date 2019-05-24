@@ -1,4 +1,4 @@
-package de.hpi.rdse.jujo.utils.startup;
+package de.hpi.rdse.jujo.startup;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;

@@ -1,4 +1,4 @@
-package de.hpi.rdse.jujo.utils.startup;
+package de.hpi.rdse.jujo.startup;
 
 import com.beust.jcommander.IValueValidator;
 import com.beust.jcommander.ParameterException;

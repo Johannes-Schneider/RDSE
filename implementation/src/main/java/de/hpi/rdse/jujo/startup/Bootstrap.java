@@ -1,4 +1,4 @@
-package de.hpi.rdse.jujo;
+package de.hpi.rdse.jujo.startup;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -9,9 +9,6 @@ import de.hpi.rdse.jujo.actors.master.Master;
 import de.hpi.rdse.jujo.actors.master.Shepherd;
 import de.hpi.rdse.jujo.actors.slave.Sheep;
 import de.hpi.rdse.jujo.actors.slave.Slave;
-import de.hpi.rdse.jujo.utils.AkkaUtils;
-import de.hpi.rdse.jujo.utils.startup.MasterCommand;
-import de.hpi.rdse.jujo.utils.startup.SlaveCommand;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
@@ -23,7 +20,7 @@ public class Bootstrap {
     private static final String DEFAULT_SLAVE_SYSTEM_NAME = "SlaveActorSystem";
 
     public static void runMaster(MasterCommand masterCommand) {
-        final Config config = AkkaUtils.createRemoteAkkaConfig(masterCommand.getHost(), MasterCommand.DEFAULT_PORT);
+        final Config config = ConfigurationFactory.createRemoteAkkaConfig(masterCommand.getHost(), MasterCommand.DEFAULT_PORT);
         final ActorSystem actorSystem = ActorSystem.create(DEFAULT_MASTER_SYSTEM_NAME, config);
 
         actorSystem.actorOf(Reaper.props(), Reaper.DEFAULT_NAME);
@@ -50,7 +47,7 @@ public class Bootstrap {
     }
 
     public static void runSlave(SlaveCommand slaveCommand) {
-        final Config config = AkkaUtils.createRemoteAkkaConfig(slaveCommand.getDefaultHost(), SlaveCommand.DEFAULT_PORT);
+        final Config config = ConfigurationFactory.createRemoteAkkaConfig(slaveCommand.getDefaultHost(), SlaveCommand.DEFAULT_PORT);
         final ActorSystem actorSystem = ActorSystem.create(DEFAULT_SLAVE_SYSTEM_NAME, config);
 
         actorSystem.actorOf(Reaper.props(), Reaper.DEFAULT_NAME);
