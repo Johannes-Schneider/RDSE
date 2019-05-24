@@ -2,26 +2,14 @@ package de.hpi.rdse.jujo.actors.common;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.util.ByteString;
 import com.google.common.primitives.Bytes;
-import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
-import de.hpi.rdse.jujo.actors.slave.Slave;
-import de.hpi.rdse.jujo.utils.fileHandling.FilePartionIterator;
-import de.hpi.rdse.jujo.utils.fileHandling.FilePartitioner;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import de.hpi.rdse.jujo.fileHandling.FilePartionIterator;
+import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 
-import java.io.File;
-import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.*;
 
 public class WordCountWorker extends AbstractReapedActor {
-
-    private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
 
     public static Props props(ActorRef supervisor) {
         return Props.create(WordCountWorker.class, () -> new WordCountWorker(supervisor));
@@ -50,17 +38,17 @@ public class WordCountWorker extends AbstractReapedActor {
         int lastWhitespaceIndex = Bytes.lastIndexOf(chunkBytes, (byte) 0x20);
         this.remainingBytes.put(chunkBytes, 0, lastWhitespaceIndex);
         this.remainingBytes.position(0);
-        String decodedChunk = DEFAULT_CHARSET.decode(this.remainingBytes).toString();
+        String decodedChunk = Vocabulary.decode(this.remainingBytes);
         this.remainingBytes.clear();
         this.remainingBytes.put(chunkBytes, lastWhitespaceIndex + 1, chunkBytes.length - lastWhitespaceIndex - 1);
         this.countWords(decodedChunk.split(" "));
     }
 
     private void handle(WorkerCoordinator.CorpusTransferCompleted message) {
-        String decodedChunk = DEFAULT_CHARSET.decode(this.remainingBytes).toString();
+        String decodedChunk = Vocabulary.decode(this.remainingBytes);
         this.remainingBytes.clear();
         this.countWords(decodedChunk.split(" "));
-        this.supervisor.tell(new WordEndpoint.WordsCounted(this.wordCount), this.self());
+        this.supervisor.tell(new Subsampler.WordsCounted(this.wordCount), this.self());
     }
 
     private void countWords(String[] words) {

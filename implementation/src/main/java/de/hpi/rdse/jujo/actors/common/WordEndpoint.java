@@ -3,15 +3,15 @@ package de.hpi.rdse.jujo.actors.common;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import de.hpi.rdse.jujo.wordManagement.Vocabulary;
+import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class WordEndpoint extends AbstractReapedActor {
 
@@ -27,35 +27,56 @@ public class WordEndpoint extends AbstractReapedActor {
         private List<ActorRef> endpoints;
     }
 
-    @AllArgsConstructor @NoArgsConstructor @Getter
-    public static class WordsCounted implements Serializable {
-        private static final long serialVersionUID = -5661255174425103187L;
-        private Map<String, Long> wordCounts;
+    @NoArgsConstructor @AllArgsConstructor @Getter
+    public static class VocabularyCreated implements Serializable {
+        private static final long serialVersionUID = 5126582840330122184L;
+        private Vocabulary vocabulary;
     }
 
-    private final List<ActorRef> wordEndpoints = new ArrayList<>();
+    private final WordEndpointResolver wordEndpointResolver = new WordEndpointResolver(this.self());
+    private final ActorRef subsampler;
+    private Vocabulary vocabulary;
 
-    private WordEndpoint() { }
+    private WordEndpoint() {
+        this.subsampler = this.context().actorOf(Subsampler.props(this.wordEndpointResolver));
+    }
 
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                 .match(WordEndpoints.class, this::handle)
-                .match(WordsCounted.class, this::handle)
+                .match(Subsampler.WordsCounted.class, this::handle)
+                .match(VocabularyCreated.class, this::handle)
+                .match(Subsampler.TakeOwnershipForWordCounts.class, this::handle)
+                .match(Subsampler.ConfirmWordOwnershipDistribution.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
     }
 
     private void handle(WordEndpoints message) {
-        if (!this.wordEndpoints.isEmpty()) {
+        if (this.wordEndpointResolver.isReadyToResolve()) {
             this.log().warning("Received WordEndpoints message although already received earlier.");
-            this.wordEndpoints.clear();
         }
 
-        this.wordEndpoints.addAll(message.getEndpoints());
+        this.wordEndpointResolver.setWordEndpoints(message.getEndpoints());
+        this.subsampler.tell(message, this.sender());
     }
 
-    private void handle(WordsCounted message) {
+    private void handle(Subsampler.WordsCounted message) {
         this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        this.subsampler.tell(message, this.sender());
+    }
+
+    private void handle(VocabularyCreated message) {
+        this.vocabulary = message.getVocabulary();
+        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
+    }
+
+    private void handle(Subsampler.TakeOwnershipForWordCounts message) {
+        this.subsampler.tell(message, this.sender());
+    }
+
+    private void handle(Subsampler.ConfirmWordOwnershipDistribution message) {
+        this.subsampler.tell(message, this.sender());
     }
 }
