@@ -2,8 +2,9 @@ package de.hpi.rdse.jujo;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
-import de.hpi.rdse.jujo.utils.startup.MasterCommand;
-import de.hpi.rdse.jujo.utils.startup.SlaveCommand;
+import de.hpi.rdse.jujo.startup.Bootstrap;
+import de.hpi.rdse.jujo.startup.MasterCommand;
+import de.hpi.rdse.jujo.startup.SlaveCommand;
 
 public class Main {
 

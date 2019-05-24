@@ -5,7 +5,7 @@ import akka.actor.Props;
 import akka.remote.DisassociatedEvent;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
-import de.hpi.rdse.jujo.utils.startup.SlaveCommand;
+import de.hpi.rdse.jujo.startup.SlaveCommand;
 
 public class Slave extends AbstractReapedActor {
 

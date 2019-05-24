@@ -45,11 +45,11 @@ public class WordEndpointDistributor extends AbstractReapedActor {
         }
         this.wordEndpoints.add(this.sender());
         if (this.expectedNumberOfWordEndpoints == this.wordEndpoints.size()) {
-            this.distributeWordRanges();
+            this.distributeWordEndpoints();
         }
     }
 
-    private void distributeWordRanges() {
+    private void distributeWordEndpoints() {
         for (ActorRef wordEndpoint : wordEndpoints) {
             wordEndpoint.tell(WordEndpoint.WordEndpoints.builder().endpoints(wordEndpoints).build(), this.self());
         }
