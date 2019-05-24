@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -32,18 +33,29 @@ public class WordEndpoint extends AbstractReapedActor {
         private Map<String, Long> wordCounts;
     }
 
+    private final List<ActorRef> wordEndpoints = new ArrayList<>();
+
     private WordEndpoint() { }
 
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
+                .match(WordEndpoints.class, this::handle)
                 .match(WordsCounted.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
     }
 
-    private void handle(WordsCounted message) {
+    private void handle(WordEndpoints message) {
+        if (!this.wordEndpoints.isEmpty()) {
+            this.log().warning("Received WordEndpoints message although already received earlier.");
+            this.wordEndpoints.clear();
+        }
 
+        this.wordEndpoints.addAll(message.getEndpoints());
+    }
+
+    private void handle(WordsCounted message) {
         this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 }
