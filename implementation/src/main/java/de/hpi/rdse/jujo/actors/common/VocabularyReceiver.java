@@ -11,8 +11,10 @@ import akka.stream.javadsl.StreamConverters;
 import akka.util.ByteString;
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
+import de.hpi.rdse.jujo.wordManagement.BloomFilterWordLookupStrategy;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -31,15 +33,17 @@ public class VocabularyReceiver extends AbstractReapedActor {
 
     @NoArgsConstructor
     @AllArgsConstructor
+    @Builder
     @Getter
     public static class ProcessVocabulary implements Serializable {
         private static final long serialVersionUID = -8055752577378492051L;
         private SourceRef<ByteString> source;
+        private long vocabularyLength;
     }
 
     private final Vocabulary vocabulary;
     private final Materializer materializer;
-    private final Map<ActorRef, BloomFilter> remoteBloomFilters = new HashMap<>();
+    private final Map<ActorRef, BloomFilter<String>> remoteBloomFilters = new HashMap<>();
 
     private VocabularyReceiver(Vocabulary vocabulary) {
         this.vocabulary = vocabulary;
@@ -69,6 +73,7 @@ public class VocabularyReceiver extends AbstractReapedActor {
     private NotUsed handleTermination(ActorRef sender, NotUsed notUsed, CompletionStage<Done> stage) {
         stage.thenApply(x -> {
             this.log().info(String.format("Done receiving vocabulary from %s", sender));
+            this.vocabulary.addRemoteVocabulary(sender, new BloomFilterWordLookupStrategy(this.remoteBloomFilters.get(sender)));
             return x;
         });
         return notUsed;

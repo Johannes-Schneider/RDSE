@@ -64,14 +64,14 @@ public class VocabularyDistributor extends AbstractReapedActor {
         filter.writeTo(outputStream);
 
         this.log().info(String.format("BloomFilter size = %d bytes", outputStream.size()));
-        this.distributeVocabularyToAllEndpoints(message.getWordEndpointResolver(), outputStream);
+        this.distributeVocabularyToAllEndpoints(message.getWordEndpointResolver(), outputStream, message.getVocabulary().length());
     }
 
-    private BloomFilter createBloomFilter(Vocabulary vocabulary) {
+    private BloomFilter<String> createBloomFilter(Vocabulary vocabulary) {
         this.log().info(String.format("Building BloomFilter for %d words and %f false positive rate",
                 vocabulary.length(),
                 BLOOM_FILTER_FALSE_POSITIVE_RATE));
-        BloomFilter filter = BloomFilter.create(Funnels.stringFunnel(Vocabulary.WORD_ENCODING), vocabulary.length(), BLOOM_FILTER_FALSE_POSITIVE_RATE);
+        BloomFilter<String> filter = BloomFilter.create(Funnels.stringFunnel(Vocabulary.WORD_ENCODING), vocabulary.length(), BLOOM_FILTER_FALSE_POSITIVE_RATE);
         for (String word : vocabulary) {
             filter.put(word);
         }
@@ -79,15 +79,22 @@ public class VocabularyDistributor extends AbstractReapedActor {
         return filter;
     }
 
-    private void distributeVocabularyToAllEndpoints(WordEndpointResolver resolver, ByteArrayOutputStream vocabularyStream) {
+    private void distributeVocabularyToAllEndpoints(WordEndpointResolver resolver, ByteArrayOutputStream vocabularyStream, long vocabularyLength) {
         this.log().info("About to distribute vocabulary to all WordEndpoints");
 
         for (ActorRef endpoint : resolver.all()) {
+            if (endpoint == resolver.localWordEndpoint()) {
+                continue;
+            }
+
             ByteArrayInputStream inputStream = new ByteArrayInputStream(vocabularyStream.toByteArray());
             Source<ByteString, CompletionStage<IOResult>> source = StreamConverters.fromInputStream(() -> inputStream);
             CompletionStage<SourceRef<ByteString>> sourceRef = source.runWith(StreamRefs.sourceRef(), this.materializer);
 
-            Patterns.pipe(sourceRef.thenApply(VocabularyReceiver.ProcessVocabulary::new), this.context().dispatcher()).to(endpoint, this.self());
+            Patterns.pipe(sourceRef.thenApply((ref) -> VocabularyReceiver.ProcessVocabulary.builder()
+                    .source(ref)
+                    .vocabularyLength(vocabularyLength)
+                    .build()), this.context().dispatcher()).to(endpoint, this.self());
         }
     }
 }

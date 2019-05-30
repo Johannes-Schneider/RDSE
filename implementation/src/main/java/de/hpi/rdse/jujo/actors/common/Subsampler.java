@@ -170,7 +170,7 @@ public class Subsampler extends AbstractReapedActor {
                 uniqueWords.add(word);
             }
         }
-        Vocabulary vocabulary = new Vocabulary(uniqueWords.toArray(new String[0]));
+        Vocabulary vocabulary = new Vocabulary(uniqueWords.toArray(new String[0]), this.wordEndpointResolver);
         this.wordEndpointResolver.localWordEndpoint().tell(new WordEndpoint.VocabularyCreated(vocabulary), this.self());
     }
 }
