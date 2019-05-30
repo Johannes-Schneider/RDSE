@@ -6,6 +6,7 @@ import akka.actor.Props;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.util.ByteString;
@@ -57,16 +58,17 @@ public class VocabularyReceiver extends AbstractReapedActor {
         this.log().info("Received remote vocabulary source");
 
         Source<ByteString, NotUsed> source = message.getSource().getSource().watchTermination(this::handleTermination);
-
         if (message.isFinalizeStream()) {
             source.runWith(Sink.foreach(this::handleVocabularyChunk), this.materializer);
         } else {
-            source.alsoTo(Sink.foreach(this::handleVocabularyChunk));
+            source.via(Flow.of(ByteString.class).map(this::handleVocabularyChunk));
         }
     }
 
-    private void handleVocabularyChunk(ByteString chunk) {
+    private ByteString handleVocabularyChunk(ByteString chunk) {
+        this.log().info(String.format("Received vocabulary chunk (size = %d bytes)", chunk.size()));
         this.chunks.add(chunk);
+        return chunk;
     }
 
     private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage) {
