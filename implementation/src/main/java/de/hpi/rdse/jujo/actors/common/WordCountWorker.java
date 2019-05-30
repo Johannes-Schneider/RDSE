@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import com.google.common.primitives.Bytes;
 import de.hpi.rdse.jujo.fileHandling.FilePartionIterator;
+import de.hpi.rdse.jujo.utils.Utility;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 
 import java.nio.ByteBuffer;
@@ -35,19 +36,19 @@ public class WordCountWorker extends AbstractReapedActor {
     private void handle(WorkerCoordinator.ProcessCorpusChunk message) {
         byte[] chunkBytes = new byte[message.getCorpusChunk().asByteBuffer().capacity()];
         message.getCorpusChunk().asByteBuffer().get(chunkBytes);
-        int lastWhitespaceIndex = Bytes.lastIndexOf(chunkBytes, (byte) 0x20);
-        this.remainingBytes.put(chunkBytes, 0, lastWhitespaceIndex);
+        int lastDelimiterIndex = Utility.LastIndexOfDelimiter(chunkBytes);
+        this.remainingBytes.put(chunkBytes, 0, lastDelimiterIndex);
         this.remainingBytes.position(0);
         String decodedChunk = Vocabulary.decode(this.remainingBytes);
         this.remainingBytes.clear();
-        this.remainingBytes.put(chunkBytes, lastWhitespaceIndex + 1, chunkBytes.length - lastWhitespaceIndex - 1);
-        this.countWords(decodedChunk.split(" "));
+        this.remainingBytes.put(chunkBytes, lastDelimiterIndex, chunkBytes.length - lastDelimiterIndex);
+        this.countWords(decodedChunk.split("\\s"));
     }
 
     private void handle(WorkerCoordinator.CorpusTransferCompleted message) {
         String decodedChunk = Vocabulary.decode(this.remainingBytes);
         this.remainingBytes.clear();
-        this.countWords(decodedChunk.split(" "));
+        this.countWords(decodedChunk.split("\\s"));
         this.supervisor.tell(new Subsampler.WordsCounted(this.wordCount), this.self());
     }
 

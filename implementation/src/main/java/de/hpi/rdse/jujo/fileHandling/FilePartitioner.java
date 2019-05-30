@@ -1,6 +1,7 @@
 package de.hpi.rdse.jujo.fileHandling;
 
 import com.google.common.primitives.Bytes;
+import de.hpi.rdse.jujo.utils.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -90,10 +91,10 @@ public class FilePartitioner {
 
             byte[] buffer = new byte[SEEK_CHUNK_SIZE];
             fileStream.read(buffer);
-            int whitespaceIndex = Bytes.indexOf(buffer, (byte) 0x20);
+            int delimiterIndex = Utility.NextIndexOfDelimiter(buffer);
 
-            if (whitespaceIndex >= 0) {
-                return this.fileStream.getChannel().position() - SEEK_CHUNK_SIZE + whitespaceIndex;
+            if (delimiterIndex >= 0) {
+                return this.fileStream.getChannel().position() - SEEK_CHUNK_SIZE + delimiterIndex;
             }
         }
         return this.file.length();
