@@ -2,13 +2,13 @@ package de.hpi.rdse.jujo.actors.common;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import com.google.common.primitives.Bytes;
 import de.hpi.rdse.jujo.fileHandling.FilePartionIterator;
 import de.hpi.rdse.jujo.utils.Utility;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class WordCountWorker extends AbstractReapedActor {
 

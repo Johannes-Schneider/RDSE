@@ -21,13 +21,18 @@ public class WordEndpoint extends AbstractReapedActor {
         return Props.create(WordEndpoint.class, WordEndpoint::new);
     }
 
-    @Builder @NoArgsConstructor @AllArgsConstructor @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Getter
     public static class WordEndpoints implements Serializable {
         private static final long serialVersionUID = 8070089151352318828L;
         private List<ActorRef> endpoints;
     }
 
-    @NoArgsConstructor @AllArgsConstructor @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Getter
     public static class VocabularyCreated implements Serializable {
         private static final long serialVersionUID = 5126582840330122184L;
         private Vocabulary vocabulary;
@@ -35,10 +40,13 @@ public class WordEndpoint extends AbstractReapedActor {
 
     private final WordEndpointResolver wordEndpointResolver = new WordEndpointResolver(this.self());
     private final ActorRef subsampler;
+    private final ActorRef vocabularyDistributor;
+    private ActorRef vocabularyReceiver;
     private Vocabulary vocabulary;
 
     private WordEndpoint() {
         this.subsampler = this.context().actorOf(Subsampler.props(this.wordEndpointResolver));
+        this.vocabularyDistributor = this.context().actorOf(VocabularyDistributor.props());
     }
 
     @Override
@@ -49,6 +57,7 @@ public class WordEndpoint extends AbstractReapedActor {
                 .match(VocabularyCreated.class, this::handle)
                 .match(Subsampler.TakeOwnershipForWordCounts.class, this::handle)
                 .match(Subsampler.ConfirmWordOwnershipDistribution.class, this::handle)
+                .match(VocabularyReceiver.ProcessVocabulary.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
     }
@@ -70,6 +79,13 @@ public class WordEndpoint extends AbstractReapedActor {
     private void handle(VocabularyCreated message) {
         this.vocabulary = message.getVocabulary();
         this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
+
+        this.vocabularyDistributor.tell(
+                VocabularyDistributor.DistributeVocabulary.builder()
+                        .vocabulary(this.vocabulary)
+                        .wordEndpointResolver(this.wordEndpointResolver)
+                        .build(),
+                this.self());
     }
 
     private void handle(Subsampler.TakeOwnershipForWordCounts message) {
@@ -78,5 +94,13 @@ public class WordEndpoint extends AbstractReapedActor {
 
     private void handle(Subsampler.ConfirmWordOwnershipDistribution message) {
         this.subsampler.tell(message, this.sender());
+    }
+
+    private void handle(VocabularyReceiver.ProcessVocabulary message) {
+        if (this.vocabularyReceiver == null) {
+            this.vocabularyReceiver = this.context().actorOf(VocabularyReceiver.props(this.vocabulary));
+        }
+
+        this.vocabularyReceiver.tell(message, this.sender());
     }
 }

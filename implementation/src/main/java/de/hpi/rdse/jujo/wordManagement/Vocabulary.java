@@ -6,10 +6,12 @@ import com.google.common.hash.Hashing;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Iterator;
 
-public class Vocabulary {
+public class Vocabulary implements Iterable<String> {
 
-    private static final Charset WORD_ENCODING = Charset.forName("UTF-8");
+    public static final Charset WORD_ENCODING = Charset.forName("UTF-8");
     private static final int MIN_NUMBER_OF_HASHING_BITS = 2048;
     private static final HashFunction HASH_FUNCTION = Hashing.goodFastHash(MIN_NUMBER_OF_HASHING_BITS);
 
@@ -38,5 +40,14 @@ public class Vocabulary {
 
     public Vocabulary(String[] words) {
         this.words = words;
+    }
+
+    public long length() {
+        return this.words.length;
+    }
+
+    @Override
+    public Iterator<String> iterator() {
+        return Arrays.stream(this.words).iterator();
     }
 }

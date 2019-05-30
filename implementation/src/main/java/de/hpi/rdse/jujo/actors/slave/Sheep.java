@@ -1,6 +1,11 @@
 package de.hpi.rdse.jujo.actors.slave;
 
-import akka.actor.*;
+import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
+import akka.actor.Address;
+import akka.actor.Cancellable;
+import akka.actor.Props;
+import akka.actor.Scheduler;
 import akka.remote.DisassociatedEvent;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.master.Shepherd;

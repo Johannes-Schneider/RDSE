@@ -1,6 +1,5 @@
 package de.hpi.rdse.jujo.fileHandling;
 
-import com.google.common.primitives.Bytes;
 import de.hpi.rdse.jujo.utils.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

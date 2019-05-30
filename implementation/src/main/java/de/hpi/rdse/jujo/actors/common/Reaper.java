@@ -1,6 +1,11 @@
 package de.hpi.rdse.jujo.actors.common;
 
-import akka.actor.*;
+import akka.actor.AbstractActor;
+import akka.actor.AbstractLoggingActor;
+import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
+import akka.actor.Props;
+import akka.actor.Terminated;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
