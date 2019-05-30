@@ -2,20 +2,25 @@ package de.hpi.rdse.jujo.actors.common;
 
 import akka.Done;
 import akka.NotUsed;
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
-import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.StreamConverters;
 import akka.util.ByteString;
+import com.google.common.hash.BloomFilter;
+import com.google.common.hash.Funnels;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 public class VocabularyReceiver extends AbstractReapedActor {
@@ -34,7 +39,7 @@ public class VocabularyReceiver extends AbstractReapedActor {
 
     private final Vocabulary vocabulary;
     private final Materializer materializer;
-    private final List<ByteString> chunks = new ArrayList<>();
+    private final Map<ActorRef, BloomFilter> remoteBloomFilters = new HashMap<>();
 
     private VocabularyReceiver(Vocabulary vocabulary) {
         this.vocabulary = vocabulary;
@@ -49,24 +54,21 @@ public class VocabularyReceiver extends AbstractReapedActor {
                 .build();
     }
 
-    private void handle(ProcessVocabulary message) {
-        this.log().info("Received remote vocabulary source");
+    private void handle(ProcessVocabulary message) throws IOException {
+        this.log().info(String.format("Received remote vocabulary source from %s", this.sender()));
 
-        message.getSource().getSource()
-                .watchTermination(this::handleTermination)
-                .runWith(Sink.foreach(this::handleVocabularyChunk), this.materializer);
+        InputStream inputStream = message.getSource().getSource()
+                .watchTermination((notUsed, stage) -> this.handleTermination(this.sender(), notUsed, stage))
+                .runWith(StreamConverters.asInputStream(), this.materializer);
+
+        this.remoteBloomFilters.put(
+                this.sender(),
+                BloomFilter.readFrom(inputStream, Funnels.stringFunnel(Vocabulary.WORD_ENCODING)));
     }
 
-    private void handleVocabularyChunk(ByteString chunk) {
-        this.log().info(String.format("Received vocabulary chunk (size = %d bytes) from %s",
-                chunk.size(),
-                this.sender().path()));
-        this.chunks.add(chunk);
-    }
-
-    private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage) {
+    private NotUsed handleTermination(ActorRef sender, NotUsed notUsed, CompletionStage<Done> stage) {
         stage.thenApply(x -> {
-            this.log().info(String.format("Done receiving vocabulary from %s", this.sender().path()));
+            this.log().info(String.format("Done receiving vocabulary from %s", sender));
             return x;
         });
         return notUsed;
