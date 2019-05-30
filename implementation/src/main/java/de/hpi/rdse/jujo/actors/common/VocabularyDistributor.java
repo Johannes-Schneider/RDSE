@@ -2,6 +2,7 @@ package de.hpi.rdse.jujo.actors.common;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.IOResult;
 import akka.stream.Materializer;
@@ -23,7 +24,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 public class VocabularyDistributor extends AbstractReapedActor {
@@ -64,12 +64,7 @@ public class VocabularyDistributor extends AbstractReapedActor {
         filter.writeTo(outputStream);
 
         this.log().info(String.format("BloomFilter size = %d bytes", outputStream.size()));
-
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
-        Source<ByteString, CompletionStage<IOResult>> source = StreamConverters.fromInputStream(() -> inputStream);
-        CompletionStage<SourceRef<ByteString>> sourceRef = source.runWith(StreamRefs.sourceRef(), this.materializer);
-
-        sourceRef.thenApply((ref) -> this.distributeVocabularyToAllEndpoints(message.getWordEndpointResolver(), ref));
+        this.distributeVocabularyToAllEndpoints(message.getWordEndpointResolver(), outputStream);
     }
 
     private BloomFilter createBloomFilter(Vocabulary vocabulary) {
@@ -84,21 +79,15 @@ public class VocabularyDistributor extends AbstractReapedActor {
         return filter;
     }
 
-    private SourceRef<ByteString> distributeVocabularyToAllEndpoints(WordEndpointResolver resolver, SourceRef<ByteString> sourceRef) {
+    private void distributeVocabularyToAllEndpoints(WordEndpointResolver resolver, ByteArrayOutputStream vocabularyStream) {
         this.log().info("About to distribute vocabulary to all WordEndpoints");
 
-        List<ActorRef> all = resolver.all();
-        for (int i = 0; i < all.size(); ++i) {
-            boolean isLast = i + 1 == all.size();
-            ActorRef wordEndpoint = all.get(i);
+        for (ActorRef endpoint : resolver.all()) {
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(vocabularyStream.toByteArray());
+            Source<ByteString, CompletionStage<IOResult>> source = StreamConverters.fromInputStream(() -> inputStream);
+            CompletionStage<SourceRef<ByteString>> sourceRef = source.runWith(StreamRefs.sourceRef(), this.materializer);
 
-            wordEndpoint.tell(VocabularyReceiver.ProcessVocabulary.builder()
-                            .source(sourceRef)
-                            .finalizeStream(isLast)
-                            .build(),
-                    this.self());
+            Patterns.pipe(sourceRef.thenApply(VocabularyReceiver.ProcessVocabulary::new), this.context().dispatcher()).to(endpoint, this.self());
         }
-
-        return sourceRef;
     }
 }

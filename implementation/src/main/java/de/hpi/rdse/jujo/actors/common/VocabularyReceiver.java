@@ -6,13 +6,10 @@ import akka.actor.Props;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
-import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 import akka.util.ByteString;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -29,12 +26,10 @@ public class VocabularyReceiver extends AbstractReapedActor {
 
     @NoArgsConstructor
     @AllArgsConstructor
-    @Builder
     @Getter
     public static class ProcessVocabulary implements Serializable {
         private static final long serialVersionUID = -8055752577378492051L;
         private SourceRef<ByteString> source;
-        private boolean finalizeStream;
     }
 
     private final Vocabulary vocabulary;
@@ -57,23 +52,21 @@ public class VocabularyReceiver extends AbstractReapedActor {
     private void handle(ProcessVocabulary message) {
         this.log().info("Received remote vocabulary source");
 
-        Source<ByteString, NotUsed> source = message.getSource().getSource().watchTermination(this::handleTermination);
-        if (message.isFinalizeStream()) {
-            source.runWith(Sink.foreach(this::handleVocabularyChunk), this.materializer);
-        } else {
-            source.via(Flow.of(ByteString.class).map(this::handleVocabularyChunk));
-        }
+        message.getSource().getSource()
+                .watchTermination(this::handleTermination)
+                .runWith(Sink.foreach(this::handleVocabularyChunk), this.materializer);
     }
 
-    private ByteString handleVocabularyChunk(ByteString chunk) {
-        this.log().info(String.format("Received vocabulary chunk (size = %d bytes)", chunk.size()));
+    private void handleVocabularyChunk(ByteString chunk) {
+        this.log().info(String.format("Received vocabulary chunk (size = %d bytes) from %s",
+                chunk.size(),
+                this.sender().path()));
         this.chunks.add(chunk);
-        return chunk;
     }
 
     private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage) {
         stage.thenApply(x -> {
-            this.log().info("Done receiving vocabulary");
+            this.log().info(String.format("Done receiving vocabulary from %s", this.sender().path()));
             return x;
         });
         return notUsed;
