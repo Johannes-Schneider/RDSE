@@ -1,6 +1,7 @@
 package de.hpi.rdse.jujo.fileHandling;
 
 import akka.util.ByteString;
+import de.hpi.rdse.jujo.startup.ConfigurationWrapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,8 +14,9 @@ import java.util.Iterator;
 public class FilePartionIterator implements Iterator<ByteString> {
 
     private static final Logger Log = LogManager.getLogger(FilePartionIterator.class);
-
-    public static final int CHUNK_SIZE = 256000;
+    public static int chunkSize() {
+        return (int) (ConfigurationWrapper.getMaximumMessageSize() * 0.9d);
+    }
 
     private final FileInputStream inputStream;
     private final long readEnd;
@@ -44,7 +46,7 @@ public class FilePartionIterator implements Iterator<ByteString> {
 
     private int nextElementSize() {
         try {
-            return (int) Math.min(CHUNK_SIZE, this.readEnd - this.inputStream.getChannel().position());
+            return (int) Math.min(chunkSize(), this.readEnd - this.inputStream.getChannel().position());
         } catch (IOException e) {
             Log.error("Unable to calculate next element length for network transfer.", e);
             this.closeFileStream();

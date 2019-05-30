@@ -18,10 +18,11 @@ public class WordCountWorker extends AbstractReapedActor {
 
     private final ActorRef supervisor;
     private final Map<String, Long> wordCount = new HashMap<>();
-    private final ByteBuffer remainingBytes = ByteBuffer.allocate(FilePartionIterator.CHUNK_SIZE * 2);
+    private final ByteBuffer remainingBytes;
 
     private WordCountWorker(ActorRef supervisor) {
         this.supervisor = supervisor;
+        this.remainingBytes = ByteBuffer.allocate(FilePartionIterator.chunkSize() * 2);
     }
 
     @Override
