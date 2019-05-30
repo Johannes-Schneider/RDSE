@@ -13,6 +13,7 @@ import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
 import de.hpi.rdse.jujo.wordManagement.BloomFilterWordLookupStrategy;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
+import de.hpi.rdse.jujo.wordManagement.VocabularyPartition;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -62,7 +63,7 @@ public class VocabularyReceiver extends AbstractReapedActor {
         this.log().info(String.format("Received remote vocabulary source from %s", this.sender()));
 
         InputStream inputStream = message.getSource().getSource()
-                .watchTermination((notUsed, stage) -> this.handleTermination(this.sender(), notUsed, stage))
+                .watchTermination((notUsed, stage) -> this.handleTermination(this.sender(), message.getVocabularyLength(), notUsed, stage))
                 .runWith(StreamConverters.asInputStream(), this.materializer);
 
         this.remoteBloomFilters.put(
@@ -70,10 +71,12 @@ public class VocabularyReceiver extends AbstractReapedActor {
                 BloomFilter.readFrom(inputStream, Funnels.stringFunnel(Vocabulary.WORD_ENCODING)));
     }
 
-    private NotUsed handleTermination(ActorRef sender, NotUsed notUsed, CompletionStage<Done> stage) {
+    private NotUsed handleTermination(ActorRef sender, long vocabularyLength, NotUsed notUsed, CompletionStage<Done> stage) {
         stage.thenApply(x -> {
             this.log().info(String.format("Done receiving vocabulary from %s", sender));
-            this.vocabulary.addRemoteVocabulary(sender, new BloomFilterWordLookupStrategy(this.remoteBloomFilters.get(sender)));
+            VocabularyPartition partition = new VocabularyPartition(vocabularyLength,
+                    new BloomFilterWordLookupStrategy(this.remoteBloomFilters.get(sender)));
+            this.vocabulary.addRemoteVocabulary(sender, partition);
             return x;
         });
         return notUsed;
