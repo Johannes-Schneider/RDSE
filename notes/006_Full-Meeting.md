@@ -1,6 +1,6 @@
 # Tue 21.05.2019
 
-## 006 Full Meetings
+## 006 Full Meeting
 
 - Discuss protocols with Thorsten (e.g. WordCount, Subsampling, ...)
 - Fault Tolerance: Start replicating after the initial word count

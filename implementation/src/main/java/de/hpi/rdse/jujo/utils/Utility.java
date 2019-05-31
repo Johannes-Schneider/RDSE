@@ -10,7 +10,7 @@ public class Utility {
             (byte) 0x20, // space
     };
 
-    public static int NextIndexOfDelimiter(byte[] bytes) {
+    public static int nextIndexOfDelimiter(byte[] bytes) {
         boolean delimiterFound = false;
         int nextIndex = bytes.length;
         for (byte delimiter : DELIMITERS) {
@@ -25,7 +25,7 @@ public class Utility {
         return delimiterFound ? nextIndex : -1;
     }
 
-    public static int LastIndexOfDelimiter(byte[] bytes) {
+    public static int lastIndexOfDelimiter(byte[] bytes) {
         boolean delimiterFound = false;
         int lastIndex = -1;
         for (byte delimiter : DELIMITERS) {

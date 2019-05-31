@@ -37,7 +37,7 @@ public class WordCountWorker extends AbstractReapedActor {
     private void handle(WorkerCoordinator.ProcessCorpusChunk message) {
         byte[] chunkBytes = new byte[message.getCorpusChunk().asByteBuffer().capacity()];
         message.getCorpusChunk().asByteBuffer().get(chunkBytes);
-        int lastDelimiterIndex = Utility.LastIndexOfDelimiter(chunkBytes);
+        int lastDelimiterIndex = Utility.lastIndexOfDelimiter(chunkBytes);
         this.remainingBytes.put(chunkBytes, 0, lastDelimiterIndex);
         this.remainingBytes.position(0);
         String decodedChunk = Vocabulary.decode(this.remainingBytes);

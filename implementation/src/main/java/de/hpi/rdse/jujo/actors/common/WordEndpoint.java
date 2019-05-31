@@ -21,18 +21,13 @@ public class WordEndpoint extends AbstractReapedActor {
         return Props.create(WordEndpoint.class, WordEndpoint::new);
     }
 
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Getter
+    @Builder @NoArgsConstructor @AllArgsConstructor @Getter
     public static class WordEndpoints implements Serializable {
         private static final long serialVersionUID = 8070089151352318828L;
         private List<ActorRef> endpoints;
     }
 
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Getter
+    @NoArgsConstructor @AllArgsConstructor @Getter
     public static class VocabularyCreated implements Serializable {
         private static final long serialVersionUID = 5126582840330122184L;
         private Vocabulary vocabulary;
@@ -52,14 +47,14 @@ public class WordEndpoint extends AbstractReapedActor {
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
-                .match(WordEndpoints.class, this::handle)
-                .match(Subsampler.WordsCounted.class, this::handle)
-                .match(VocabularyCreated.class, this::handle)
-                .match(Subsampler.TakeOwnershipForWordCounts.class, this::handle)
-                .match(Subsampler.ConfirmWordOwnershipDistribution.class, this::handle)
-                .match(VocabularyReceiver.ProcessVocabulary.class, this::handle)
-                .matchAny(this::handleAny)
-                .build();
+                   .match(WordEndpoints.class, this::handle)
+                   .match(Subsampler.WordsCounted.class, this::handle)
+                   .match(VocabularyCreated.class, this::handle)
+                   .match(Subsampler.TakeOwnershipForWordCounts.class, this::handle)
+                   .match(Subsampler.ConfirmWordOwnershipDistribution.class, this::handle)
+                   .match(VocabularyReceiver.ProcessVocabulary.class, this::handle)
+                   .matchAny(this::handleAny)
+                   .build();
     }
 
     private void handle(WordEndpoints message) {
@@ -67,6 +62,7 @@ public class WordEndpoint extends AbstractReapedActor {
             this.log().warning("Received WordEndpoints message although already received earlier.");
         }
 
+        this.log().info("Received all WordEndpoints");
         this.wordEndpointResolver.setWordEndpoints(message.getEndpoints());
         this.subsampler.tell(message, this.sender());
     }
@@ -82,9 +78,9 @@ public class WordEndpoint extends AbstractReapedActor {
 
         this.vocabularyDistributor.tell(
                 VocabularyDistributor.DistributeVocabulary.builder()
-                        .vocabulary(this.vocabulary)
-                        .wordEndpointResolver(this.wordEndpointResolver)
-                        .build(),
+                                                          .vocabulary(this.vocabulary)
+                                                          .wordEndpointResolver(this.wordEndpointResolver)
+                                                          .build(),
                 this.self());
     }
 

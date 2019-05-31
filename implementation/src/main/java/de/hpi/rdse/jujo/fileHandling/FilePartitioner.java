@@ -90,7 +90,7 @@ public class FilePartitioner {
 
             byte[] buffer = new byte[SEEK_CHUNK_SIZE];
             fileStream.read(buffer);
-            int delimiterIndex = Utility.NextIndexOfDelimiter(buffer);
+            int delimiterIndex = Utility.nextIndexOfDelimiter(buffer);
 
             if (delimiterIndex >= 0) {
                 return this.fileStream.getChannel().position() - SEEK_CHUNK_SIZE + delimiterIndex;

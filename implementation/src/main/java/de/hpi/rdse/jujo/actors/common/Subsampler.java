@@ -66,13 +66,13 @@ public class Subsampler extends AbstractReapedActor {
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
-                .match(WordsCounted.class, this::handle)
-                .match(TakeOwnershipForWordCounts.class, this::handle)
-                .match(WordEndpoint.WordEndpoints.class, this::handle)
-                .match(AckOwnership.class, this::handle)
-                .match(ConfirmWordOwnershipDistribution.class, this::handle)
-                .matchAny(this::handleAny)
-                .build();
+                   .match(WordsCounted.class, this::handle)
+                   .match(TakeOwnershipForWordCounts.class, this::handle)
+                   .match(WordEndpoint.WordEndpoints.class, this::handle)
+                   .match(AckOwnership.class, this::handle)
+                   .match(ConfirmWordOwnershipDistribution.class, this::handle)
+                   .matchAny(this::handleAny)
+                   .build();
     }
 
     private void handle(WordsCounted message) {
@@ -103,6 +103,8 @@ public class Subsampler extends AbstractReapedActor {
             TakeOwnershipForWordCounts message = this.consumeWordCountsAndCreateMessage(it);
             this.unacknowledgedTakeOverOwnerships.add(message.getMessageId());
             target.tell(message, this.self());
+
+            this.log().info(String.format("Distributed %d words to %s", message.getWordCounts().size(), target.path()));
         }
     }
 
@@ -126,6 +128,9 @@ public class Subsampler extends AbstractReapedActor {
     }
 
     private void handle(TakeOwnershipForWordCounts message) {
+        this.log().info(String.format("Taking ownership for %d words from %s", message.getWordCounts().size(),
+                this.sender().path()));
+
         for (String word : message.getWordCounts().keySet()) {
             if (this.wordCounts.computeIfPresent(word,
                     (key, count) -> count + message.getWordCounts().get(word)) == null) {
@@ -145,7 +150,7 @@ public class Subsampler extends AbstractReapedActor {
     private void handle(AckOwnership message) {
         this.unacknowledgedTakeOverOwnerships.remove(message.getMessageId());
         if (this.unacknowledgedTakeOverOwnerships.isEmpty()) {
-            for (ActorRef wordEndpoint: this.wordEndpointResolver.all()) {
+            for (ActorRef wordEndpoint : this.wordEndpointResolver.all()) {
                 wordEndpoint.tell(new ConfirmWordOwnershipDistribution(this.initialCorpusPartitionSize), this.self());
             }
         }
@@ -163,6 +168,9 @@ public class Subsampler extends AbstractReapedActor {
     }
 
     private void subsample() {
+        this.log().info(String.format("Starting sub-sampling (total corpus size = %d; corpus partition size = %d)",
+                this.totalCorpusSize, this.wordCounts.size()));
+
         this.subsamplingStrategy = new FrequencyBasedSubsampling(this.totalCorpusSize, this.wordCounts);
         Set<String> uniqueWords = new HashSet<>();
         for (String word : this.wordCounts.keySet()) {
@@ -170,6 +178,10 @@ public class Subsampler extends AbstractReapedActor {
                 uniqueWords.add(word);
             }
         }
+
+        this.log().info("Done sub-sampling; kept %f %% (%d) of all words",
+                uniqueWords.size() / (double) this.wordCounts.size() * 100, uniqueWords.size());
+
         Vocabulary vocabulary = new Vocabulary(uniqueWords.toArray(new String[0]), this.wordEndpointResolver);
         this.wordEndpointResolver.localWordEndpoint().tell(new WordEndpoint.VocabularyCreated(vocabulary), this.self());
     }
