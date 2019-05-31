@@ -4,7 +4,7 @@ import com.google.common.primitives.Bytes;
 
 public class Utility {
 
-    private static final byte[] DELIMITERS = new byte[] {
+    public static final byte[] DELIMITERS = new byte[] {
             (byte) 0x09, // tab
             (byte) 0x0a, // new line
             (byte) 0x20, // space

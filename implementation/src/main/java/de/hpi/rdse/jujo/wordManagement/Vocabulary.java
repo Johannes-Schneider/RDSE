@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import com.sun.istack.internal.NotNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,11 +29,11 @@ public class Vocabulary implements Iterable<String> {
     }
 
     public static String decode(byte[] encodedPhrase) {
-        return decode(ByteBuffer.wrap(encodedPhrase));
+        return decode(encodedPhrase, 0, encodedPhrase.length);
     }
 
-    public static String decode(ByteBuffer encodedPhrase) {
-        return WORD_ENCODING.decode(encodedPhrase).toString();
+    public static String decode(byte[] encodedPhrase, int offset, int length) {
+        return new String(encodedPhrase, offset, length, WORD_ENCODING);
     }
 
     public static int getByteCount(String phrase) {
@@ -60,7 +61,7 @@ public class Vocabulary implements Iterable<String> {
         return this.words.length;
     }
 
-    @Override
+    @Override @NotNull
     public Iterator<String> iterator() {
         return Arrays.stream(this.words).iterator();
     }
@@ -91,7 +92,7 @@ public class Vocabulary implements Iterable<String> {
             return false;
         }
 
-        return this.vocabularyPartitions.keySet().retainAll(this.wordEndpointResolver.all());
+        return this.vocabularyPartitions.keySet().containsAll(this.wordEndpointResolver.all());
     }
 
     public boolean contains(String word) {

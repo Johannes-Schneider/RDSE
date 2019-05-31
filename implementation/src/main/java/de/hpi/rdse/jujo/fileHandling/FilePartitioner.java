@@ -74,8 +74,7 @@ public class FilePartitioner {
                 .readLength(endOffset - this.currentFileOffset)
                 .build();
 
-        // +1 removes the delimiter (whitespace)
-        this.currentFileOffset = endOffset + 1;
+        this.currentFileOffset = endOffset;
 
         if (this.fileStreamIsAtEnd()) {
             this.closeFileStream();
@@ -86,14 +85,13 @@ public class FilePartitioner {
 
     private long getPositionOfNextWhiteSpace() throws IOException {
         while (this.fileStream.getChannel().position() < this.file.length()) {
-            this.fileStream.getChannel().position(fileStream.getChannel().position() + SEEK_CHUNK_SIZE);
-
             byte[] buffer = new byte[SEEK_CHUNK_SIZE];
-            fileStream.read(buffer);
+            int read = fileStream.read(buffer);
+
             int delimiterIndex = Utility.nextIndexOfDelimiter(buffer);
 
             if (delimiterIndex >= 0) {
-                return this.fileStream.getChannel().position() - SEEK_CHUNK_SIZE + delimiterIndex;
+                return this.fileStream.getChannel().position() - read + delimiterIndex;
             }
         }
         return this.file.length();

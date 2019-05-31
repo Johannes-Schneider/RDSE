@@ -25,7 +25,8 @@ public class Slave extends AbstractReapedActor {
 
     private Slave(SlaveCommand slaveCommand) {
         this.workerCoordinator = this.context().actorOf(
-                WorkerCoordinator.props(slaveCommand.getTemporaryWorkingDirectory()));
+                WorkerCoordinator.props(slaveCommand.getTemporaryWorkingDirectory(),
+                        slaveCommand.getNumberOfWorkers()));
     }
 
     @Override

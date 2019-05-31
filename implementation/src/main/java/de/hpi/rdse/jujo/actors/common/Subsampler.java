@@ -66,18 +66,20 @@ public class Subsampler extends AbstractReapedActor {
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
-                   .match(WordsCounted.class, this::handle)
-                   .match(TakeOwnershipForWordCounts.class, this::handle)
-                   .match(WordEndpoint.WordEndpoints.class, this::handle)
-                   .match(AckOwnership.class, this::handle)
-                   .match(ConfirmWordOwnershipDistribution.class, this::handle)
-                   .matchAny(this::handleAny)
-                   .build();
+                .match(WordsCounted.class, this::handle)
+                .match(TakeOwnershipForWordCounts.class, this::handle)
+                .match(WordEndpoint.WordEndpoints.class, this::handle)
+                .match(AckOwnership.class, this::handle)
+                .match(ConfirmWordOwnershipDistribution.class, this::handle)
+                .matchAny(this::handleAny)
+                .build();
     }
 
     private void handle(WordsCounted message) {
         this.undistributedWordCounts = message.getWordCounts();
         this.initialCorpusPartitionSize = message.getWordCounts().values().stream().reduce(0L, Long::sum);
+        this.log().info(String.format("Number of words in corpus partition: %d being processes on %s",
+                this.initialCorpusPartitionSize, this.self().path()));
         if (this.wordEndpointResolver.isReadyToResolve()) {
             this.distributeWordCounts();
         }
@@ -168,8 +170,8 @@ public class Subsampler extends AbstractReapedActor {
     }
 
     private void subsample() {
-        this.log().info(String.format("Starting sub-sampling (total corpus size = %d; corpus partition size = %d)",
-                this.totalCorpusSize, this.wordCounts.size()));
+        this.log().info(String.format("Starting sub-sampling (total number of words = %d; local number of words = %d)",
+                this.totalCorpusSize, this.wordCounts.values().stream().reduce(0L, Long::sum)));
 
         this.subsamplingStrategy = new FrequencyBasedSubsampling(this.totalCorpusSize, this.wordCounts);
         Set<String> uniqueWords = new HashSet<>();
@@ -179,8 +181,8 @@ public class Subsampler extends AbstractReapedActor {
             }
         }
 
-        this.log().info("Done sub-sampling; kept %f %% (%d) of all words",
-                uniqueWords.size() / (double) this.wordCounts.size() * 100, uniqueWords.size());
+        this.log().info(String.format("Done sub-sampling; kept %f %% (%d) unique words",
+                uniqueWords.size() / (double) this.wordCounts.size() * 100, uniqueWords.size()));
 
         Vocabulary vocabulary = new Vocabulary(uniqueWords.toArray(new String[0]), this.wordEndpointResolver);
         this.wordEndpointResolver.localWordEndpoint().tell(new WordEndpoint.VocabularyCreated(vocabulary), this.self());

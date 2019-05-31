@@ -3,6 +3,7 @@ package de.hpi.rdse.jujo.actors.common;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.util.ByteString;
+import de.hpi.rdse.jujo.actors.common.wordCount.WordCountCoordinator;
 import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,8 +13,9 @@ import java.io.Serializable;
 
 public class WorkerCoordinator extends AbstractReapedActor {
 
-    public static Props props(String tempWorkingDir) {
-        return Props.create(WorkerCoordinator.class, () -> new WorkerCoordinator(tempWorkingDir));
+    public static Props props(String tempWorkingDir, int maxNumberOfLocalWorkers) {
+        return Props.create(WorkerCoordinator.class,
+                () -> new WorkerCoordinator(tempWorkingDir, maxNumberOfLocalWorkers));
     }
 
     @AllArgsConstructor @NoArgsConstructor @Getter
@@ -28,13 +30,15 @@ public class WorkerCoordinator extends AbstractReapedActor {
     }
 
     private final ActorRef wordEndpoint;
-    private ActorRef wordCountWorker;
+    private ActorRef wordCountCoordinator;
     private final ActorRef corpusReceiver;
+    private final int maxNumberOfLocalWorkers;
 
-    private WorkerCoordinator(String tempWorkingDir) {
+    private WorkerCoordinator(String tempWorkingDir, int maxNumberOfLocalWorkers) {
         this.wordEndpoint = this.context().actorOf(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
         this.corpusReceiver = this.context().actorOf(
                 CorpusReceiver.props(this.self(), tempWorkingDir));
+        this.maxNumberOfLocalWorkers = maxNumberOfLocalWorkers;
     }
 
 
@@ -52,18 +56,19 @@ public class WorkerCoordinator extends AbstractReapedActor {
     }
 
     private void handle(ProcessCorpusChunk message) {
-        initializeWordCountWorker();
-        this.wordCountWorker.tell(message, this.self());
+        initializeWordCountCoordinator();
+        this.wordCountCoordinator.tell(message, this.self());
     }
 
     private void handle(CorpusTransferCompleted message) {
-        initializeWordCountWorker();
-        this.wordCountWorker.tell(message, this.self());
+        initializeWordCountCoordinator();
+        this.wordCountCoordinator.tell(message, this.self());
     }
 
-    private void initializeWordCountWorker() {
-        if (this.wordCountWorker == null) {
-            this.wordCountWorker = this.context().actorOf(WordCountWorker.props(this.wordEndpoint));
+    private void initializeWordCountCoordinator() {
+        if (this.wordCountCoordinator == null) {
+            this.wordCountCoordinator = this.context().actorOf(
+                    WordCountCoordinator.props(this.wordEndpoint, this.maxNumberOfLocalWorkers));
         }
     }
 

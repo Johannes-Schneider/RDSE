@@ -11,9 +11,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 
-public class FilePartionIterator implements Iterator<ByteString> {
+public class FilePartitionIterator implements Iterator<ByteString> {
 
-    private static final Logger Log = LogManager.getLogger(FilePartionIterator.class);
+    private static final Logger Log = LogManager.getLogger(FilePartitionIterator.class);
     public static int chunkSize() {
         return (int) (ConfigurationWrapper.getMaximumMessageSize() * 0.9d);
     }
@@ -21,7 +21,7 @@ public class FilePartionIterator implements Iterator<ByteString> {
     private final FileInputStream inputStream;
     private final long readEnd;
 
-    public FilePartionIterator(FilePartition filePartition, File file) throws IOException {
+    public FilePartitionIterator(FilePartition filePartition, File file) throws IOException {
         this.readEnd = filePartition.getReadOffset() + filePartition.getReadLength();
         this.inputStream = new FileInputStream(file);
         this.inputStream.getChannel().position(filePartition.getReadOffset());

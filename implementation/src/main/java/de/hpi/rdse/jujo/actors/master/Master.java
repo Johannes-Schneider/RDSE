@@ -36,7 +36,8 @@ public class Master extends AbstractReapedActor {
         this.wordEndpointDistributor = this.createWordEndpointDistributor(masterCommand);
         this.corpusDistributor = this.createCorpusDistributor(masterCommand);
         this.workerCoordinator = this.context().actorOf(
-                WorkerCoordinator.props(masterCommand.getTemporaryWorkingDirectory()));
+                WorkerCoordinator.props(masterCommand.getTemporaryWorkingDirectory(),
+                        masterCommand.getNumberOfWorkers()));
         this.self().tell(new Shepherd.SlaveNodeRegistrationMessage(this.self()), this.self());
     }
 

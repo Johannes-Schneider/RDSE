@@ -13,7 +13,7 @@ import akka.util.ByteString;
 import com.esotericsoftware.minlog.Log;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
-import de.hpi.rdse.jujo.fileHandling.FilePartionIterator;
+import de.hpi.rdse.jujo.fileHandling.FilePartitionIterator;
 import de.hpi.rdse.jujo.fileHandling.FilePartition;
 import de.hpi.rdse.jujo.fileHandling.FilePartitioner;
 
@@ -62,7 +62,7 @@ public class CorpusDistributor extends AbstractReapedActor {
     private Source<ByteString, NotUsed> createCorpusSource() {
         FilePartition filePartition = this.filePartitioner.getNextPartition();
         try {
-            FilePartionIterator filePartionIterator = new FilePartionIterator(filePartition, new File(this.corpusFilePath));
+            FilePartitionIterator filePartionIterator = new FilePartitionIterator(filePartition, new File(this.corpusFilePath));
             return Source.<ByteString>fromIterator(() -> filePartionIterator);
         } catch (IOException e) {
             Log.error("Unable to create iterator for FilePartition.", e);
