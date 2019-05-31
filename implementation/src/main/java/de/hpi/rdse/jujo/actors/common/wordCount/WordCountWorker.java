@@ -40,8 +40,8 @@ public class WordCountWorker extends AbstractReapedActor {
             if (word.isEmpty()) {
                 continue;
             }
-            if (wordCounts.computeIfPresent(word, (key, value) -> value + 1) == null) {
-                wordCounts.put(word, 1);
+            if (wordCounts.computeIfPresent(word.toLowerCase(), (key, value) -> value + 1) == null) {
+                wordCounts.put(word.toLowerCase(), 1);
             }
         }
         this.sender().tell(new WordCountCoordinator.WordsCounted(wordCounts), this.self());

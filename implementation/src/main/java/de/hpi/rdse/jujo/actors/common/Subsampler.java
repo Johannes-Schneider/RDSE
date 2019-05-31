@@ -178,6 +178,8 @@ public class Subsampler extends AbstractReapedActor {
         for (String word : this.wordCounts.keySet()) {
             if (this.subsamplingStrategy.keep(word)) {
                 uniqueWords.add(word);
+            } else {
+                this.log().debug(String.format("Subsampling discards word %s", word));
             }
         }
 
