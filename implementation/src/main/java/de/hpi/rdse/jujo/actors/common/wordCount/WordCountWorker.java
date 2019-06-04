@@ -2,6 +2,7 @@ package de.hpi.rdse.jujo.actors.common.wordCount;
 
 import akka.actor.Props;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
+import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -40,8 +41,9 @@ public class WordCountWorker extends AbstractReapedActor {
             if (word.isEmpty()) {
                 continue;
             }
-            if (wordCounts.computeIfPresent(word.toLowerCase(), (key, value) -> value + 1) == null) {
-                wordCounts.put(word.toLowerCase(), 1);
+            String unifiedWord = Vocabulary.unify(word);
+            if (wordCounts.computeIfPresent(unifiedWord, (key, value) -> value + 1) == null) {
+                wordCounts.put(unifiedWord, 1);
             }
         }
         this.sender().tell(new WordCountCoordinator.WordsCounted(wordCounts), this.self());

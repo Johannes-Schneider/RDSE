@@ -1,7 +1,7 @@
 package de.hpi.rdse.jujo.corpusHandling;
 
 import akka.util.ByteString;
-import de.hpi.rdse.jujo.actors.testUtilities.TestUtilities;
+import de.hpi.rdse.jujo.TestUtilities;
 import org.junit.Test;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;

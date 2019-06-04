@@ -44,6 +44,10 @@ public class Vocabulary implements Iterable<String> {
         return HASH_FUNCTION.hashString(phrase, WORD_ENCODING);
     }
 
+    public static String unify(String word) {
+        return word.toLowerCase();
+    }
+
     private final String[] words;
     private final WordEndpointResolver wordEndpointResolver;
     private final Map<ActorRef, VocabularyPartition> vocabularyPartitions = new HashMap<>();

@@ -1,4 +1,4 @@
-package de.hpi.rdse.jujo.actors.testUtilities;
+package de.hpi.rdse.jujo.actors;
 
 import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;

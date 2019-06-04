@@ -1,6 +1,6 @@
 package de.hpi.rdse.jujo.fileHandling;
 
-import de.hpi.rdse.jujo.actors.testUtilities.TestUtilities;
+import de.hpi.rdse.jujo.TestUtilities;
 import org.junit.Test;
 
 import java.io.File;

@@ -2,7 +2,7 @@ package de.hpi.rdse.jujo.actors.common.wordCount;
 
 import akka.actor.ActorRef;
 import akka.testkit.javadsl.TestKit;
-import de.hpi.rdse.jujo.actors.testUtilities.AbstractBaseTest;
+import de.hpi.rdse.jujo.actors.AbstractBaseTest;
 import de.hpi.rdse.jujo.utils.Utility;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import org.junit.Test;
