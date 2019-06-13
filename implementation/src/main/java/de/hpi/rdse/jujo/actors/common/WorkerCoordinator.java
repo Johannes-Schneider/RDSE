@@ -3,6 +3,7 @@ package de.hpi.rdse.jujo.actors.common;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.util.ByteString;
+import de.hpi.rdse.jujo.actors.common.training.TrainingCoordinator;
 import de.hpi.rdse.jujo.actors.common.wordCount.WordCountCoordinator;
 import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
 import lombok.AllArgsConstructor;
@@ -15,7 +16,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
 
     public static Props props(String tempWorkingDir, int maxNumberOfLocalWorkers) {
         return Props.create(WorkerCoordinator.class,
-                () -> new WorkerCoordinator(tempWorkingDir, maxNumberOfLocalWorkers));
+                            () -> new WorkerCoordinator(tempWorkingDir, maxNumberOfLocalWorkers));
     }
 
     @AllArgsConstructor @NoArgsConstructor @Getter
@@ -24,20 +25,23 @@ public class WorkerCoordinator extends AbstractReapedActor {
         private ByteString corpusChunk;
     }
 
-    @NoArgsConstructor
+    @NoArgsConstructor @AllArgsConstructor @Getter
     public static class CorpusTransferCompleted implements Serializable {
         private static final long serialVersionUID = 425628626453556436L;
+        private String localCorpusPartitionPath;
     }
 
     private final ActorRef wordEndpoint;
     private ActorRef wordCountCoordinator;
     private final ActorRef corpusReceiver;
+    private final ActorRef trainingCoordinator;
     private final int maxNumberOfLocalWorkers;
 
     private WorkerCoordinator(String tempWorkingDir, int maxNumberOfLocalWorkers) {
-        this.wordEndpoint = this.context().actorOf(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
+        this.wordEndpoint = this.context().actorOf(WordEndpoint.props(maxNumberOfLocalWorkers), WordEndpoint.DEFAULT_NAME);
         this.corpusReceiver = this.context().actorOf(
                 CorpusReceiver.props(this.self(), tempWorkingDir));
+        this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props());
         this.maxNumberOfLocalWorkers = maxNumberOfLocalWorkers;
     }
 
@@ -56,12 +60,13 @@ public class WorkerCoordinator extends AbstractReapedActor {
     }
 
     private void handle(ProcessCorpusChunk message) {
-        initializeWordCountCoordinator();
+        this.initializeWordCountCoordinator();
         this.wordCountCoordinator.tell(message, this.self());
     }
 
     private void handle(CorpusTransferCompleted message) {
-        initializeWordCountCoordinator();
+        this.wordEndpoint.tell(message, this.sender());
+        this.initializeWordCountCoordinator();
         this.wordCountCoordinator.tell(message, this.self());
     }
 
@@ -71,5 +76,4 @@ public class WorkerCoordinator extends AbstractReapedActor {
                     WordCountCoordinator.props(this.wordEndpoint, this.maxNumberOfLocalWorkers));
         }
     }
-
 }

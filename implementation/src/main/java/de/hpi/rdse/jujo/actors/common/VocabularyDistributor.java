@@ -34,10 +34,7 @@ public class VocabularyDistributor extends AbstractReapedActor {
         return Props.create(VocabularyDistributor.class, VocabularyDistributor::new);
     }
 
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    @Getter
+    @NoArgsConstructor @AllArgsConstructor @Builder @Getter
     public static class DistributeVocabulary implements Serializable {
         private static final long serialVersionUID = -126729453919355190L;
         private Vocabulary vocabulary;
@@ -69,8 +66,8 @@ public class VocabularyDistributor extends AbstractReapedActor {
 
     private BloomFilter<String> createBloomFilter(Vocabulary vocabulary) {
         this.log().info(String.format("Building BloomFilter for %d words and %f false positive rate",
-                vocabulary.length(),
-                BLOOM_FILTER_FALSE_POSITIVE_RATE));
+                                      vocabulary.length(),
+                                      BLOOM_FILTER_FALSE_POSITIVE_RATE));
         BloomFilter<String> filter = BloomFilter.create(Funnels.stringFunnel(Vocabulary.WORD_ENCODING), vocabulary.length(), BLOOM_FILTER_FALSE_POSITIVE_RATE);
         for (String word : vocabulary) {
             filter.put(word);
@@ -92,9 +89,9 @@ public class VocabularyDistributor extends AbstractReapedActor {
             CompletionStage<SourceRef<ByteString>> sourceRef = source.runWith(StreamRefs.sourceRef(), this.materializer);
 
             Patterns.pipe(sourceRef.thenApply((ref) -> VocabularyReceiver.ProcessVocabulary.builder()
-                    .source(ref)
-                    .vocabularyLength(vocabularyLength)
-                    .build()), this.context().dispatcher()).to(endpoint, this.self());
+                                                                                           .source(ref)
+                                                                                           .vocabularyLength(vocabularyLength)
+                                                                                           .build()), this.context().dispatcher()).to(endpoint, this.self());
         }
     }
 }

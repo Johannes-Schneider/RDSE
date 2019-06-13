@@ -13,8 +13,8 @@ import akka.util.ByteString;
 import com.esotericsoftware.minlog.Log;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
-import de.hpi.rdse.jujo.fileHandling.FilePartitionIterator;
 import de.hpi.rdse.jujo.fileHandling.FilePartition;
+import de.hpi.rdse.jujo.fileHandling.FilePartitionIterator;
 import de.hpi.rdse.jujo.fileHandling.FilePartitioner;
 
 import java.io.File;

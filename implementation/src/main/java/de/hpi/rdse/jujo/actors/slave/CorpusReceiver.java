@@ -26,6 +26,7 @@ import java.util.concurrent.CompletionStage;
 public class CorpusReceiver extends AbstractReapedActor {
 
     private static final String CORPUS_DIRECTORY_NAME = "corpus";
+    private static final String CORPUS_FILE_NAME = "corpus.txt";
 
     public static Props props(ActorRef supervisor, String temporaryWorkingDirectory) {
         return Props.create(CorpusReceiver.class, () -> new CorpusReceiver(supervisor, temporaryWorkingDirectory));
@@ -52,7 +53,7 @@ public class CorpusReceiver extends AbstractReapedActor {
         if (corpusLocation.exists()) {
             return corpusLocation;
         }
-        if (!corpusLocation.mkdir()) {
+        if (!corpusLocation.mkdirs()) {
             throw new IOException("Unable to create directory for storing corpus. Check file system permissions.");
         }
         return corpusLocation;
@@ -70,7 +71,7 @@ public class CorpusReceiver extends AbstractReapedActor {
         message.getSource().getSource()
                 .via(Flow.of(ByteString.class).map(this::handleCorpusChunk))
                 .watchTermination(this::handleTermination)
-                .runWith(FileIO.toPath(Paths.get(this.corpusLocation.getPath(), "corpus.txt")), this.materializer);
+                .runWith(FileIO.toPath(Paths.get(this.corpusLocation.getPath(), CORPUS_FILE_NAME)), this.materializer);
     }
 
     private ByteString handleCorpusChunk(ByteString chunk) {
@@ -81,7 +82,8 @@ public class CorpusReceiver extends AbstractReapedActor {
 
     private NotUsed handleTermination(NotUsed not, CompletionStage<Done> stage) {
         stage.thenApply(x -> {
-            this.supervisor.tell(new WorkerCoordinator.CorpusTransferCompleted(), this.self());
+            this.supervisor.tell(new WorkerCoordinator.CorpusTransferCompleted(
+                    Paths.get(this.corpusLocation.getPath(), CORPUS_FILE_NAME).toString()), this.self());
             return x;
         });
         return not;

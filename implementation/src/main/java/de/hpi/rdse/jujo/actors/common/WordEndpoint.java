@@ -3,6 +3,8 @@ package de.hpi.rdse.jujo.actors.common;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import de.hpi.rdse.jujo.actors.common.training.SkipGramReceiver;
+import de.hpi.rdse.jujo.actors.common.training.TrainingCoordinator;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 import lombok.AllArgsConstructor;
@@ -17,8 +19,8 @@ public class WordEndpoint extends AbstractReapedActor {
 
     public static final String DEFAULT_NAME = "WordEndpoint";
 
-    public static Props props() {
-        return Props.create(WordEndpoint.class, WordEndpoint::new);
+    public static Props props(int maxNumberOfLocalWorkers) {
+        return Props.create(WordEndpoint.class, () -> new WordEndpoint(maxNumberOfLocalWorkers));
     }
 
     @Builder @NoArgsConstructor @AllArgsConstructor @Getter
@@ -33,15 +35,25 @@ public class WordEndpoint extends AbstractReapedActor {
         private Vocabulary vocabulary;
     }
 
+    @NoArgsConstructor
+    public static class VocabularyCompleted implements Serializable {
+        private static final long serialVersionUID = -8133305903846340892L;
+    }
+
     private final WordEndpointResolver wordEndpointResolver = new WordEndpointResolver(this.self());
     private final ActorRef subsampler;
     private final ActorRef vocabularyDistributor;
+    private final ActorRef trainingCoordinator;
     private ActorRef vocabularyReceiver;
     private Vocabulary vocabulary;
+    private final int maxNumberOfLocalWorkers;
+    private String localCorpusPartitionPath;
 
-    private WordEndpoint() {
+    private WordEndpoint(int maxNumberOfLocalWorkers) {
         this.subsampler = this.context().actorOf(Subsampler.props(this.wordEndpointResolver));
         this.vocabularyDistributor = this.context().actorOf(VocabularyDistributor.props());
+        this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props());
+        this.maxNumberOfLocalWorkers = maxNumberOfLocalWorkers;
     }
 
     @Override
@@ -53,6 +65,9 @@ public class WordEndpoint extends AbstractReapedActor {
                    .match(Subsampler.TakeOwnershipForWordCounts.class, this::handle)
                    .match(Subsampler.ConfirmWordOwnershipDistribution.class, this::handle)
                    .match(VocabularyReceiver.ProcessVocabulary.class, this::handle)
+                   .match(VocabularyCompleted.class, this::handle)
+                   .match(WorkerCoordinator.CorpusTransferCompleted.class, this::handle)
+                   .match(SkipGramReceiver.ProcessSkipGrams.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -94,9 +109,28 @@ public class WordEndpoint extends AbstractReapedActor {
 
     private void handle(VocabularyReceiver.ProcessVocabulary message) {
         if (this.vocabularyReceiver == null) {
-            this.vocabularyReceiver = this.context().actorOf(VocabularyReceiver.props(this.vocabulary));
+            this.vocabularyReceiver = this.context().actorOf(VocabularyReceiver.props(this.self(), this.vocabulary));
         }
 
         this.vocabularyReceiver.tell(message, this.sender());
+    }
+
+    private void handle(VocabularyCompleted message) {
+        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        this.trainingCoordinator.tell(
+                TrainingCoordinator.StartTraining.builder()
+                                                 .vocabulary(this.vocabulary)
+                                                 .numberOfLocalWorkers(this.maxNumberOfLocalWorkers)
+                                                 .localCorpusPartitionPath(this.localCorpusPartitionPath)
+                                                 .build(),
+                this.self());
+    }
+
+    private void handle(WorkerCoordinator.CorpusTransferCompleted message) {
+        this.localCorpusPartitionPath = message.getLocalCorpusPartitionPath();
+    }
+
+    private void handle(SkipGramReceiver.ProcessSkipGrams message) {
+        this.trainingCoordinator.tell(message, this.sender());
     }
 }

@@ -4,12 +4,10 @@ import akka.actor.ActorRef;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import com.sun.istack.internal.NotNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.management.OperationsException;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -61,11 +59,15 @@ public class Vocabulary implements Iterable<String> {
         this.vocabularyPartitions.put(this.wordEndpointResolver.localWordEndpoint(), localPartition);
     }
 
+    public WordEndpointResolver getWordEndpointResolver() {
+        return this.wordEndpointResolver;
+    }
+
     public long length() {
         return this.words.length;
     }
 
-    @Override @NotNull
+    @Override
     public Iterator<String> iterator() {
         return Arrays.stream(this.words).iterator();
     }
@@ -100,6 +102,14 @@ public class Vocabulary implements Iterable<String> {
     }
 
     public boolean contains(String word) {
+        return this.vocabularyPartitions.get(this.getResponsibleWordEndpoint(word)).contains(word);
+    }
+
+    public boolean containsLocally(String word) {
+        return this.getResponsibleWordEndpoint(word) == this.wordEndpointResolver.localWordEndpoint();
+    }
+
+    private ActorRef getResponsibleWordEndpoint(String word) {
         ActorRef responsibleWordEndpoint = this.wordEndpointResolver.resolve(word);
 
         if (responsibleWordEndpoint == ActorRef.noSender()) {
@@ -107,7 +117,7 @@ public class Vocabulary implements Iterable<String> {
             responsibleWordEndpoint = this.wordEndpointResolver.localWordEndpoint();
         }
 
-        return this.vocabularyPartitions.get(responsibleWordEndpoint).contains(word);
+        return responsibleWordEndpoint;
     }
 
     public long oneHotIndex(String word) {

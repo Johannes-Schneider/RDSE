@@ -28,25 +28,24 @@ import java.util.concurrent.CompletionStage;
 
 public class VocabularyReceiver extends AbstractReapedActor {
 
-    public static Props props(Vocabulary vocabulary) {
-        return Props.create(VocabularyReceiver.class, () -> new VocabularyReceiver(vocabulary));
+    public static Props props(ActorRef supervisor, Vocabulary vocabulary) {
+        return Props.create(VocabularyReceiver.class, () -> new VocabularyReceiver(supervisor, vocabulary));
     }
 
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    @Getter
+    @NoArgsConstructor @AllArgsConstructor @Builder @Getter
     public static class ProcessVocabulary implements Serializable {
         private static final long serialVersionUID = -8055752577378492051L;
         private SourceRef<ByteString> source;
         private long vocabularyLength;
     }
 
+    private final ActorRef supervisor;
     private final Vocabulary vocabulary;
     private final Materializer materializer;
     private final Map<ActorRef, BloomFilter<String>> remoteBloomFilters = new HashMap<>();
 
-    private VocabularyReceiver(Vocabulary vocabulary) {
+    private VocabularyReceiver(ActorRef supervisor, Vocabulary vocabulary) {
+        this.supervisor = supervisor;
         this.vocabulary = vocabulary;
         this.materializer = ActorMaterializer.create(this.context());
     }
@@ -63,8 +62,8 @@ public class VocabularyReceiver extends AbstractReapedActor {
         this.log().info(String.format("Received remote vocabulary source from %s", this.sender()));
 
         InputStream inputStream = message.getSource().getSource()
-                .watchTermination((notUsed, stage) -> this.handleTermination(this.sender(), message.getVocabularyLength(), notUsed, stage))
-                .runWith(StreamConverters.asInputStream(), this.materializer);
+                                         .watchTermination((notUsed, stage) -> this.handleTermination(this.sender(), message.getVocabularyLength(), notUsed, stage))
+                                         .runWith(StreamConverters.asInputStream(), this.materializer);
 
         this.remoteBloomFilters.put(
                 this.sender(),
@@ -75,8 +74,13 @@ public class VocabularyReceiver extends AbstractReapedActor {
         stage.thenApply(x -> {
             this.log().info(String.format("Done receiving vocabulary from %s", sender));
             VocabularyPartition partition = new VocabularyPartition(vocabularyLength,
-                    new BloomFilterWordLookupStrategy(this.remoteBloomFilters.get(sender)));
+                                                                    new BloomFilterWordLookupStrategy(this.remoteBloomFilters.get(sender)));
             this.vocabulary.addRemoteVocabulary(sender, partition);
+
+            if (this.vocabulary.isComplete()) {
+                this.supervisor.tell(new WordEndpoint.VocabularyCreated(), this.self());
+            }
+
             return x;
         });
         return notUsed;

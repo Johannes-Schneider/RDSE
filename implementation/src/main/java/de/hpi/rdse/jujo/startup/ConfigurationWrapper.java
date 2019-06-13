@@ -4,6 +4,8 @@ import com.typesafe.config.Config;
 
 public class ConfigurationWrapper {
 
+    public static final String MAXIMUM_MESSAGE_SIZE_KEY = "akka.remote.maximum-payload-bytes";
+
     private static Config config;
 
     public static Config initialize(Config config) {
@@ -16,6 +18,6 @@ public class ConfigurationWrapper {
     }
 
     public static long getMaximumMessageSize() {
-        return get().getBytes("akka.remote.maximum-payload-bytes");
+        return get().getBytes(MAXIMUM_MESSAGE_SIZE_KEY);
     }
 }
