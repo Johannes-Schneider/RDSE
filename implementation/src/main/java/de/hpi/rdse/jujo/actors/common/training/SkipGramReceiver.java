@@ -16,7 +16,7 @@ public class SkipGramReceiver extends AbstractReapedActor {
         return Props.create(SkipGramReceiver.class, () -> new SkipGramReceiver(supervisor, vocabulary));
     }
 
-    @NoArgsConstructor @AllArgsConstructor @Getter
+    @NoArgsConstructor @Getter
     public static class ProcessSkipGrams implements Serializable {
         private static final long serialVersionUID = 735332284132943544L;
     }

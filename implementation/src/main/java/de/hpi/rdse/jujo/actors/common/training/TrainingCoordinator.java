@@ -5,6 +5,7 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +18,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
         return Props.create(TrainingCoordinator.class, TrainingCoordinator::new);
     }
 
-    @NoArgsConstructor @Builder @Getter
+    @NoArgsConstructor @AllArgsConstructor @Builder @Getter
     public static class StartTraining implements Serializable {
         private static final long serialVersionUID = -910991812790625629L;
         private Vocabulary vocabulary;
