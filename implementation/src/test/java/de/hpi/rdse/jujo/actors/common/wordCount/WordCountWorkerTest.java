@@ -22,13 +22,13 @@ public class WordCountWorkerTest extends AbstractBaseTest {
             String[] testSet = {"Dies", "ist", "ein", "Satz", "mit", "vielen", "Wörtern,", "wie", "Satz"};
 
             Map<String, Integer> expectedResult = new HashMap<String, Integer>() {{
-                put("Dies", 1);
+                put("dies", 1);
                 put("ist", 1);
                 put("ein", 1);
-                put("Satz", 2);
+                put("satz", 2);
                 put("mit", 1);
                 put("vielen", 1);
-                put("Wörtern,", 1);
+                put("wörtern,", 1);
                 put("wie", 1);
             }};
 
