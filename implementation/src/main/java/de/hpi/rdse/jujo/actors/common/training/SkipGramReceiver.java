@@ -4,7 +4,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 

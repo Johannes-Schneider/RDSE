@@ -3,8 +3,6 @@ package de.hpi.rdse.jujo.actors.common;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
-import de.hpi.rdse.jujo.actors.common.training.SkipGramReceiver;
-import de.hpi.rdse.jujo.actors.common.training.TrainingCoordinator;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 import lombok.AllArgsConstructor;
@@ -43,14 +41,12 @@ public class WordEndpoint extends AbstractReapedActor {
     private final WordEndpointResolver wordEndpointResolver = new WordEndpointResolver(this.self());
     private final ActorRef subsampler;
     private final ActorRef vocabularyDistributor;
-    private final ActorRef trainingCoordinator;
     private ActorRef vocabularyReceiver;
     private Vocabulary vocabulary;
 
     private WordEndpoint() {
         this.subsampler = this.context().actorOf(Subsampler.props(this.wordEndpointResolver));
         this.vocabularyDistributor = this.context().actorOf(VocabularyDistributor.props());
-        this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props());
     }
 
     @Override
@@ -63,7 +59,6 @@ public class WordEndpoint extends AbstractReapedActor {
                    .match(Subsampler.ConfirmWordOwnershipDistribution.class, this::handle)
                    .match(VocabularyReceiver.ProcessVocabulary.class, this::handle)
                    .match(VocabularyCompleted.class, this::handle)
-                   .match(SkipGramReceiver.ProcessSkipGrams.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -116,9 +111,5 @@ public class WordEndpoint extends AbstractReapedActor {
         this.context().parent().tell(WorkerCoordinator.VocabularyReadyForTraining.builder()
                                                                                  .vocabulary(this.vocabulary)
                                                                                  .build(), this.self());
-    }
-
-    private void handle(SkipGramReceiver.ProcessSkipGrams message) {
-        this.trainingCoordinator.tell(message, this.sender());
     }
 }
