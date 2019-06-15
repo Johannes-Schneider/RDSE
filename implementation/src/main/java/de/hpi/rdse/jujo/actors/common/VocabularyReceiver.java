@@ -78,7 +78,7 @@ public class VocabularyReceiver extends AbstractReapedActor {
             this.vocabulary.addRemoteVocabulary(sender, partition);
 
             if (this.vocabulary.isComplete()) {
-                this.supervisor.tell(new WordEndpoint.VocabularyCreated(), this.self());
+                this.supervisor.tell(new WordEndpoint.VocabularyCompleted(), this.self());
             }
 
             return x;
