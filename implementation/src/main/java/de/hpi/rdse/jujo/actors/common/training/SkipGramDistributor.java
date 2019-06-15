@@ -18,22 +18,18 @@ public class SkipGramDistributor extends AbstractReapedActor {
 
     private static final int WINDOW_SIZE = 5; // TODO: change this to be a CLI argument
 
-    public static Props props(ActorRef supervisor, String localCorpusPartitionPath, Vocabulary vocabulary) {
-        return Props.create(SkipGramDistributor.class, () -> new SkipGramDistributor(supervisor,
-                                                                                     localCorpusPartitionPath,
+    public static Props props(String localCorpusPartitionPath, Vocabulary vocabulary) {
+        return Props.create(SkipGramDistributor.class, () -> new SkipGramDistributor(localCorpusPartitionPath,
                                                                                      vocabulary));
     }
 
-    private final ActorRef supervisor;
     private final Vocabulary vocabulary;
     private final FileWordIterator fileIterator;
     private final List<String> words = new ArrayList<>();
     private final Map<ActorRef, List<UnencodedSkipGram>> skipGramsByResponsibleWordEndpoint = new HashMap<>();
 
-    private SkipGramDistributor(ActorRef supervisor,
-                                String localCorpusPartitionPath,
+    private SkipGramDistributor(String localCorpusPartitionPath,
                                 Vocabulary vocabulary) throws FileNotFoundException {
-        this.supervisor = supervisor;
         this.vocabulary = vocabulary;
         this.fileIterator = new FileWordIterator(localCorpusPartitionPath);
     }
@@ -47,7 +43,7 @@ public class SkipGramDistributor extends AbstractReapedActor {
 
     private void createSkipGrams() {
         if (!this.fileIterator.hasNext()) {
-            this.supervisor.tell(new TrainingCoordinator.SkipGramsDistributed(), this.self());
+            this.context().parent().tell(new TrainingCoordinator.SkipGramsDistributed(), this.self());
             return;
         }
 

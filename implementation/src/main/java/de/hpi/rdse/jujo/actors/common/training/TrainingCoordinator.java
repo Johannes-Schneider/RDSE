@@ -34,9 +34,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
     private ActorRef skipGramDistributor;
     private ActorRef skipGramReceiver;
 
-    private TrainingCoordinator() {
-
-    }
+    private TrainingCoordinator() {}
 
     @Override
     public Receive createReceive() {
@@ -49,7 +47,25 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private void handle(StartTraining message) {
+        this.initializeSkipGramDistributor(message.getLocalCorpusPartitionPath(), message.getVocabulary());
+        // TODO: May end up in race conditions: First skip-grams may be received without receiver being present.
+        this.initializeSkipGramReceiver(message.getVocabulary());
         // TODO: start training
+    }
+
+    private void initializeSkipGramDistributor(String localCorpusPartitionPath, Vocabulary vocabulary) {
+        if (this.skipGramDistributor == null) {
+            return;
+        }
+        this.skipGramDistributor = this.context().actorOf(SkipGramDistributor.props(localCorpusPartitionPath,
+                vocabulary));
+    }
+
+    private void initializeSkipGramReceiver(Vocabulary vocabulary) {
+        if (this.skipGramDistributor == null) {
+            return;
+        }
+        this.skipGramReceiver = this.context().actorOf(SkipGramReceiver.props(vocabulary));
     }
 
     private void handle(SkipGramsDistributed message) {

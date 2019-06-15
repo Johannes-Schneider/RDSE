@@ -1,6 +1,5 @@
 package de.hpi.rdse.jujo.actors.common.training;
 
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
@@ -11,8 +10,8 @@ import java.io.Serializable;
 
 public class SkipGramReceiver extends AbstractReapedActor {
 
-    public static Props props(ActorRef supervisor, Vocabulary vocabulary) {
-        return Props.create(SkipGramReceiver.class, () -> new SkipGramReceiver(supervisor, vocabulary));
+    public static Props props(Vocabulary vocabulary) {
+        return Props.create(SkipGramReceiver.class, () -> new SkipGramReceiver(vocabulary));
     }
 
     @NoArgsConstructor @Getter
@@ -20,11 +19,9 @@ public class SkipGramReceiver extends AbstractReapedActor {
         private static final long serialVersionUID = 735332284132943544L;
     }
 
-    private final ActorRef supervisor;
     private final Vocabulary vocabulary;
 
-    private SkipGramReceiver(ActorRef supervisor, Vocabulary vocabulary) {
-        this.supervisor = supervisor;
+    private SkipGramReceiver(Vocabulary vocabulary) {
         this.vocabulary = vocabulary;
     }
 
