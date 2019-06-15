@@ -6,7 +6,9 @@ import akka.util.ByteString;
 import de.hpi.rdse.jujo.actors.common.training.TrainingCoordinator;
 import de.hpi.rdse.jujo.actors.common.wordCount.WordCountCoordinator;
 import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
+import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -31,14 +33,21 @@ public class WorkerCoordinator extends AbstractReapedActor {
         private String localCorpusPartitionPath;
     }
 
+    @Builder @NoArgsConstructor @AllArgsConstructor @Getter
+    public static class VocabularyReadyForTraining implements Serializable {
+        private static final long serialVersionUID = -880424032423441020L;
+        private Vocabulary vocabulary;
+    }
+
     private final ActorRef wordEndpoint;
     private ActorRef wordCountCoordinator;
     private final ActorRef corpusReceiver;
     private final ActorRef trainingCoordinator;
     private final int maxNumberOfLocalWorkers;
+    private String localCorpusPartitionPath;
 
     private WorkerCoordinator(String tempWorkingDir, int maxNumberOfLocalWorkers) {
-        this.wordEndpoint = this.context().actorOf(WordEndpoint.props(maxNumberOfLocalWorkers), WordEndpoint.DEFAULT_NAME);
+        this.wordEndpoint = this.context().actorOf(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
         this.corpusReceiver = this.context().actorOf(
                 CorpusReceiver.props(this.self(), tempWorkingDir));
         this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props());
@@ -51,6 +60,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
                 .match(CorpusReceiver.ProcessCorpusPartition.class, this::handle)
                 .match(ProcessCorpusChunk.class, this::handle)
                 .match(CorpusTransferCompleted.class, this::handle)
+                .match(VocabularyReadyForTraining.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
     }
@@ -65,7 +75,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
     }
 
     private void handle(CorpusTransferCompleted message) {
-        this.wordEndpoint.tell(message, this.sender());
+        this.localCorpusPartitionPath = message.localCorpusPartitionPath;
         this.initializeWordCountCoordinator();
         this.wordCountCoordinator.tell(message, this.self());
     }
@@ -75,5 +85,15 @@ public class WorkerCoordinator extends AbstractReapedActor {
             this.wordCountCoordinator = this.context().actorOf(
                     WordCountCoordinator.props(this.wordEndpoint, this.maxNumberOfLocalWorkers));
         }
+    }
+
+    private void handle(VocabularyReadyForTraining message) {
+        this.trainingCoordinator.tell(
+                TrainingCoordinator.StartTraining.builder()
+                                                 .vocabulary(message.vocabulary)
+                                                 .numberOfLocalWorkers(this.maxNumberOfLocalWorkers)
+                                                 .localCorpusPartitionPath(this.localCorpusPartitionPath)
+                                                 .build(),
+                this.self());
     }
 }

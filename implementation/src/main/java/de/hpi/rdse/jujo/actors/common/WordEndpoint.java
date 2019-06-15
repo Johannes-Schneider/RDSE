@@ -19,8 +19,8 @@ public class WordEndpoint extends AbstractReapedActor {
 
     public static final String DEFAULT_NAME = "WordEndpoint";
 
-    public static Props props(int maxNumberOfLocalWorkers) {
-        return Props.create(WordEndpoint.class, () -> new WordEndpoint(maxNumberOfLocalWorkers));
+    public static Props props() {
+        return Props.create(WordEndpoint.class, WordEndpoint::new);
     }
 
     @Builder @NoArgsConstructor @AllArgsConstructor @Getter
@@ -46,14 +46,11 @@ public class WordEndpoint extends AbstractReapedActor {
     private final ActorRef trainingCoordinator;
     private ActorRef vocabularyReceiver;
     private Vocabulary vocabulary;
-    private final int maxNumberOfLocalWorkers;
-    private String localCorpusPartitionPath;
 
-    private WordEndpoint(int maxNumberOfLocalWorkers) {
+    private WordEndpoint() {
         this.subsampler = this.context().actorOf(Subsampler.props(this.wordEndpointResolver));
         this.vocabularyDistributor = this.context().actorOf(VocabularyDistributor.props());
         this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props());
-        this.maxNumberOfLocalWorkers = maxNumberOfLocalWorkers;
     }
 
     @Override
@@ -66,7 +63,6 @@ public class WordEndpoint extends AbstractReapedActor {
                    .match(Subsampler.ConfirmWordOwnershipDistribution.class, this::handle)
                    .match(VocabularyReceiver.ProcessVocabulary.class, this::handle)
                    .match(VocabularyCompleted.class, this::handle)
-                   .match(WorkerCoordinator.CorpusTransferCompleted.class, this::handle)
                    .match(SkipGramReceiver.ProcessSkipGrams.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
@@ -117,17 +113,9 @@ public class WordEndpoint extends AbstractReapedActor {
 
     private void handle(VocabularyCompleted message) {
         this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
-        this.trainingCoordinator.tell(
-                TrainingCoordinator.StartTraining.builder()
-                                                 .vocabulary(this.vocabulary)
-                                                 .numberOfLocalWorkers(this.maxNumberOfLocalWorkers)
-                                                 .localCorpusPartitionPath(this.localCorpusPartitionPath)
-                                                 .build(),
-                this.self());
-    }
-
-    private void handle(WorkerCoordinator.CorpusTransferCompleted message) {
-        this.localCorpusPartitionPath = message.getLocalCorpusPartitionPath();
+        this.context().parent().tell(WorkerCoordinator.VocabularyReadyForTraining.builder()
+                                                                                 .vocabulary(this.vocabulary)
+                                                                                 .build(), this.self());
     }
 
     private void handle(SkipGramReceiver.ProcessSkipGrams message) {
