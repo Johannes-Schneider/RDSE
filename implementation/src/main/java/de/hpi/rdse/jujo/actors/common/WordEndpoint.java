@@ -105,7 +105,7 @@ public class WordEndpoint extends AbstractReapedActor {
 
     private void handle(VocabularyReceiver.ProcessVocabulary message) {
         if (this.vocabularyReceiver == null) {
-            this.vocabularyReceiver = this.context().actorOf(VocabularyReceiver.props(this.self(), this.vocabulary));
+            this.vocabularyReceiver = this.context().actorOf(VocabularyReceiver.props(this.vocabulary));
         }
 
         this.vocabularyReceiver.tell(message, this.sender());

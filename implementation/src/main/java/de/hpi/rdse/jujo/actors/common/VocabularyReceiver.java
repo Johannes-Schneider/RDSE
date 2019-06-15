@@ -28,8 +28,8 @@ import java.util.concurrent.CompletionStage;
 
 public class VocabularyReceiver extends AbstractReapedActor {
 
-    public static Props props(ActorRef supervisor, Vocabulary vocabulary) {
-        return Props.create(VocabularyReceiver.class, () -> new VocabularyReceiver(supervisor, vocabulary));
+    public static Props props(Vocabulary vocabulary) {
+        return Props.create(VocabularyReceiver.class, () -> new VocabularyReceiver(vocabulary));
     }
 
     @NoArgsConstructor @AllArgsConstructor @Builder @Getter
@@ -39,13 +39,11 @@ public class VocabularyReceiver extends AbstractReapedActor {
         private long vocabularyLength;
     }
 
-    private final ActorRef supervisor;
     private final Vocabulary vocabulary;
     private final Materializer materializer;
     private final Map<ActorRef, BloomFilter<String>> remoteBloomFilters = new HashMap<>();
 
-    private VocabularyReceiver(ActorRef supervisor, Vocabulary vocabulary) {
-        this.supervisor = supervisor;
+    private VocabularyReceiver(Vocabulary vocabulary) {
         this.vocabulary = vocabulary;
         this.materializer = ActorMaterializer.create(this.context());
     }
@@ -78,7 +76,7 @@ public class VocabularyReceiver extends AbstractReapedActor {
             this.vocabulary.addRemoteVocabulary(sender, partition);
 
             if (this.vocabulary.isComplete()) {
-                this.supervisor.tell(new WordEndpoint.VocabularyCompleted(), this.self());
+                this.context().parent().tell(new WordEndpoint.VocabularyCompleted(), this.self());
             }
 
             return x;

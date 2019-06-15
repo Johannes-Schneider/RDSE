@@ -2,7 +2,6 @@ package de.hpi.rdse.jujo.actors.slave;
 
 import akka.Done;
 import akka.NotUsed;
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
@@ -28,8 +27,8 @@ public class CorpusReceiver extends AbstractReapedActor {
     private static final String CORPUS_DIRECTORY_NAME = "corpus";
     private static final String CORPUS_FILE_NAME = "corpus.txt";
 
-    public static Props props(ActorRef supervisor, String temporaryWorkingDirectory) {
-        return Props.create(CorpusReceiver.class, () -> new CorpusReceiver(supervisor, temporaryWorkingDirectory));
+    public static Props props(String temporaryWorkingDirectory) {
+        return Props.create(CorpusReceiver.class, () -> new CorpusReceiver(temporaryWorkingDirectory));
     }
 
     @Builder @NoArgsConstructor @AllArgsConstructor @Getter
@@ -38,12 +37,10 @@ public class CorpusReceiver extends AbstractReapedActor {
         private SourceRef<ByteString> source;
     }
 
-    private final ActorRef supervisor;
     private final File corpusLocation;
     private final Materializer materializer;
 
-    private CorpusReceiver(ActorRef supervisor, String temporaryWorkingDirectory) throws IOException {
-        this.supervisor = supervisor;
+    private CorpusReceiver(String temporaryWorkingDirectory) throws IOException {
         this.corpusLocation = this.createLocalWorkingDirectory(temporaryWorkingDirectory);
         this.materializer = ActorMaterializer.create(this.context());
     }
@@ -76,13 +73,13 @@ public class CorpusReceiver extends AbstractReapedActor {
 
     private ByteString handleCorpusChunk(ByteString chunk) {
         this.log().info(String.format("Received chunk of size %d", chunk.size()));
-        this.supervisor.tell(new WorkerCoordinator.ProcessCorpusChunk(chunk), this.self());
+        this.context().parent().tell(new WorkerCoordinator.ProcessCorpusChunk(chunk), this.self());
         return chunk;
     }
 
     private NotUsed handleTermination(NotUsed not, CompletionStage<Done> stage) {
         stage.thenApply(x -> {
-            this.supervisor.tell(new WorkerCoordinator.CorpusTransferCompleted(
+            this.context().parent().tell(new WorkerCoordinator.CorpusTransferCompleted(
                     Paths.get(this.corpusLocation.getPath(), CORPUS_FILE_NAME).toString()), this.self());
             return x;
         });

@@ -49,7 +49,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
     private WorkerCoordinator(String tempWorkingDir, int maxNumberOfLocalWorkers) {
         this.wordEndpoint = this.context().actorOf(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
         this.corpusReceiver = this.context().actorOf(
-                CorpusReceiver.props(this.self(), tempWorkingDir));
+                CorpusReceiver.props(tempWorkingDir));
         this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props());
         this.maxNumberOfLocalWorkers = maxNumberOfLocalWorkers;
     }
