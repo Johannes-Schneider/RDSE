@@ -28,8 +28,8 @@ import java.util.concurrent.CompletionStage;
 
 public class VocabularyReceiver extends AbstractReapedActor {
 
-    public static Props props(Vocabulary vocabulary) {
-        return Props.create(VocabularyReceiver.class, () -> new VocabularyReceiver(vocabulary));
+    public static Props props() {
+        return Props.create(VocabularyReceiver.class, VocabularyReceiver::new);
     }
 
     @NoArgsConstructor @AllArgsConstructor @Builder @Getter
@@ -39,12 +39,10 @@ public class VocabularyReceiver extends AbstractReapedActor {
         private long vocabularyLength;
     }
 
-    private final Vocabulary vocabulary;
     private final Materializer materializer;
     private final Map<ActorRef, BloomFilter<String>> remoteBloomFilters = new HashMap<>();
 
-    private VocabularyReceiver(Vocabulary vocabulary) {
-        this.vocabulary = vocabulary;
+    private VocabularyReceiver() {
         this.materializer = ActorMaterializer.create(this.context());
     }
 
@@ -73,9 +71,9 @@ public class VocabularyReceiver extends AbstractReapedActor {
             this.log().info(String.format("Done receiving vocabulary from %s", sender));
             VocabularyPartition partition = new VocabularyPartition(vocabularyLength,
                                                                     new BloomFilterWordLookupStrategy(this.remoteBloomFilters.get(sender)));
-            this.vocabulary.addRemoteVocabulary(sender, partition);
+            Vocabulary.getInstance().addRemoteVocabulary(sender, partition);
 
-            if (this.vocabulary.isComplete()) {
+            if (Vocabulary.getInstance().isComplete()) {
                 this.context().parent().tell(new WordEndpoint.VocabularyCompleted(), this.self());
             }
 

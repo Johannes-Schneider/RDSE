@@ -9,6 +9,8 @@ import de.hpi.rdse.jujo.actors.master.Master;
 import de.hpi.rdse.jujo.actors.master.Shepherd;
 import de.hpi.rdse.jujo.actors.slave.Sheep;
 import de.hpi.rdse.jujo.actors.slave.Slave;
+import de.hpi.rdse.jujo.training.Word2VecConfiguration;
+import de.hpi.rdse.jujo.training.Word2VecModel;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
@@ -31,6 +33,7 @@ public class Bootstrap {
         );
 
         final ActorRef shepherd = actorSystem.actorOf(Shepherd.props(master, masterCommand), Shepherd.DEFAULT_NAME);
+        Word2VecModel.setModelConfiguration(Word2VecConfiguration.fromMasterCommand(masterCommand));
 
         Bootstrap.awaitTermination(actorSystem);
     }

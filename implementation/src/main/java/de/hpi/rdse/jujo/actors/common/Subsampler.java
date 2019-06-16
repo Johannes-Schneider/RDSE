@@ -21,8 +21,8 @@ import java.util.UUID;
 
 public class Subsampler extends AbstractReapedActor {
 
-    public static Props props(WordEndpointResolver wordEndpointResolver) {
-        return Props.create(Subsampler.class, () -> new Subsampler(wordEndpointResolver));
+    public static Props props() {
+        return Props.create(Subsampler.class, Subsampler::new);
     }
 
     @AllArgsConstructor @NoArgsConstructor @Getter
@@ -50,7 +50,6 @@ public class Subsampler extends AbstractReapedActor {
         private long processedCorpusPartitionSize;
     }
 
-    private final WordEndpointResolver wordEndpointResolver;
     private final Map<String, Long> wordCounts = new HashMap<>();
     private Map<String, Long> undistributedWordCounts = new HashMap<>();
     private Set<String> unacknowledgedTakeOverOwnerships = new HashSet<>();
@@ -59,20 +58,19 @@ public class Subsampler extends AbstractReapedActor {
     private SubsamplingStrategy subsamplingStrategy;
     private long initialCorpusPartitionSize = 0;
 
-    private Subsampler(WordEndpointResolver wordEndpointResolver) {
-        this.wordEndpointResolver = wordEndpointResolver;
+    private Subsampler() {
     }
 
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
-                .match(WordsCounted.class, this::handle)
-                .match(TakeOwnershipForWordCounts.class, this::handle)
-                .match(WordEndpoint.WordEndpoints.class, this::handle)
-                .match(AckOwnership.class, this::handle)
-                .match(ConfirmWordOwnershipDistribution.class, this::handle)
-                .matchAny(this::handleAny)
-                .build();
+                   .match(WordsCounted.class, this::handle)
+                   .match(TakeOwnershipForWordCounts.class, this::handle)
+                   .match(WordEndpoint.WordEndpoints.class, this::handle)
+                   .match(AckOwnership.class, this::handle)
+                   .match(ConfirmWordOwnershipDistribution.class, this::handle)
+                   .matchAny(this::handleAny)
+                   .build();
     }
 
     private void handle(WordsCounted message) {
@@ -80,7 +78,7 @@ public class Subsampler extends AbstractReapedActor {
         this.initialCorpusPartitionSize = message.getWordCounts().values().stream().reduce(0L, Long::sum);
         this.log().info(String.format("Number of words in corpus partition: %d being processes on %s",
                 this.initialCorpusPartitionSize, this.self().path()));
-        if (this.wordEndpointResolver.isReadyToResolve()) {
+        if (WordEndpointResolver.getInstance().isReadyToResolve()) {
             this.distributeWordCounts();
         }
     }
@@ -88,7 +86,7 @@ public class Subsampler extends AbstractReapedActor {
     private void distributeWordCounts() {
         Map<ActorRef, Map<String, Long>> mapping = new HashMap<>();
         for (Map.Entry<String, Long> entry : this.undistributedWordCounts.entrySet()) {
-            ActorRef target = this.wordEndpointResolver.resolve(entry.getKey());
+            ActorRef target = WordEndpointResolver.getInstance().resolve(entry.getKey());
             mapping.putIfAbsent(target, new HashMap<>());
             mapping.get(target).put(entry.getKey(), entry.getValue());
         }
@@ -152,7 +150,7 @@ public class Subsampler extends AbstractReapedActor {
     private void handle(AckOwnership message) {
         this.unacknowledgedTakeOverOwnerships.remove(message.getMessageId());
         if (this.unacknowledgedTakeOverOwnerships.isEmpty()) {
-            for (ActorRef wordEndpoint : this.wordEndpointResolver.all()) {
+            for (ActorRef wordEndpoint : WordEndpointResolver.getInstance().all()) {
                 wordEndpoint.tell(new ConfirmWordOwnershipDistribution(this.initialCorpusPartitionSize), this.self());
             }
         }
@@ -163,7 +161,7 @@ public class Subsampler extends AbstractReapedActor {
             return;
         }
         this.totalCorpusSize += message.getProcessedCorpusPartitionSize();
-        if (this.wordEndpointsDoneDistributingWordOwnerships.size() < this.wordEndpointResolver.all().size()) {
+        if (this.wordEndpointsDoneDistributingWordOwnerships.size() < WordEndpointResolver.getInstance().all().size()) {
             return;
         }
         this.subsample();
@@ -186,7 +184,7 @@ public class Subsampler extends AbstractReapedActor {
         this.log().info(String.format("Done sub-sampling; kept %f %% (%d) unique words",
                 uniqueWords.size() / (double) this.wordCounts.size() * 100, uniqueWords.size()));
 
-        Vocabulary vocabulary = new Vocabulary(uniqueWords.toArray(new String[0]), this.wordEndpointResolver);
-        this.wordEndpointResolver.localWordEndpoint().tell(new WordEndpoint.VocabularyCreated(vocabulary), this.self());
+        Vocabulary.createInstance(uniqueWords.toArray(new String[0]));
+        WordEndpointResolver.getInstance().localWordEndpoint().tell(new WordEndpoint.VocabularyCreated(), this.self());
     }
 }

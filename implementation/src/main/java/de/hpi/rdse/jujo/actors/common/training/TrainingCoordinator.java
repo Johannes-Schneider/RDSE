@@ -4,7 +4,6 @@ import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
-import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,14 +13,13 @@ import java.io.Serializable;
 
 public class TrainingCoordinator extends AbstractReapedActor {
 
-    public static Props props(int windowSize) {
-        return Props.create(TrainingCoordinator.class, () -> new TrainingCoordinator(windowSize));
+    public static Props props() {
+        return Props.create(TrainingCoordinator.class, TrainingCoordinator::new);
     }
 
     @NoArgsConstructor @AllArgsConstructor @Builder @Getter
     public static class StartTraining implements Serializable {
         private static final long serialVersionUID = -910991812790625629L;
-        private Vocabulary vocabulary;
         private int numberOfLocalWorkers;
         private String localCorpusPartitionPath;
     }
@@ -33,10 +31,9 @@ public class TrainingCoordinator extends AbstractReapedActor {
 
     private ActorRef skipGramDistributor;
     private ActorRef skipGramReceiver;
-    private int windowSize;
 
-    private TrainingCoordinator(int windowSize) {
-        this.windowSize = windowSize;
+    private TrainingCoordinator() {
+        this.initializeSkipGramReceiver();
     }
 
     @Override
@@ -44,38 +41,40 @@ public class TrainingCoordinator extends AbstractReapedActor {
         return this.defaultReceiveBuilder()
                    .match(StartTraining.class, this::handle)
                    .match(SkipGramsDistributed.class, this::handle)
-                   .match(SkipGramReceiver.ProcessSkipGrams.class, this::handle)
+                   .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
+                   .match(SkipGramReceiver.ProcessUnencodedSkipGrams.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
 
     private void handle(StartTraining message) {
-        this.initializeSkipGramDistributor(message.getLocalCorpusPartitionPath(), message.getVocabulary());
-        // TODO: May end up in race conditions: First skip-grams may be received without receiver being present.
-        this.initializeSkipGramReceiver(message.getVocabulary());
+        this.initializeSkipGramDistributor(message.getLocalCorpusPartitionPath());
         // TODO: start training
     }
 
-    private void initializeSkipGramDistributor(String localCorpusPartitionPath, Vocabulary vocabulary) {
+    private void initializeSkipGramDistributor(String localCorpusPartitionPath) {
         if (this.skipGramDistributor == null) {
             return;
         }
-        this.skipGramDistributor = this.context().actorOf(SkipGramDistributor.props(localCorpusPartitionPath,
-                vocabulary, this.windowSize));
+        this.skipGramDistributor = this.context().actorOf(SkipGramDistributor.props(localCorpusPartitionPath));
     }
 
-    private void initializeSkipGramReceiver(Vocabulary vocabulary) {
+    private void initializeSkipGramReceiver() {
         if (this.skipGramDistributor == null) {
             return;
         }
-        this.skipGramReceiver = this.context().actorOf(SkipGramReceiver.props(vocabulary));
+        this.skipGramReceiver = this.context().actorOf(SkipGramReceiver.props());
     }
 
     private void handle(SkipGramsDistributed message) {
         this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
-    private void handle(SkipGramReceiver.ProcessSkipGrams message) {
+    private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {
+        this.skipGramReceiver.tell(message, this.sender());
+    }
+
+    private void handle(SkipGramReceiver.ProcessUnencodedSkipGrams message) {
         this.skipGramReceiver.tell(message, this.sender());
     }
 }

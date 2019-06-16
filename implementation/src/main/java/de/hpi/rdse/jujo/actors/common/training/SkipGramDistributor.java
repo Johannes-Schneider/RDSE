@@ -4,8 +4,11 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.fileHandling.FileWordIterator;
+import de.hpi.rdse.jujo.training.EncodedSkipGram;
 import de.hpi.rdse.jujo.training.UnencodedSkipGram;
+import de.hpi.rdse.jujo.training.Word2VecModel;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
+import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 
 import java.io.FileNotFoundException;
 import java.io.Serializable;
@@ -17,31 +20,35 @@ import java.util.Map;
 
 public class SkipGramDistributor extends AbstractReapedActor {
 
-    private static final int MAX_NUMBER_OF_SKIP_GRAMS_PER_MESSAGE = 100;
-
-    public static Props props(String localCorpusPartitionPath, Vocabulary vocabulary, int windowSize) {
-        return Props.create(SkipGramDistributor.class, () -> new SkipGramDistributor(localCorpusPartitionPath,
-                vocabulary, windowSize));
+    public static Props props(String localCorpusPartitionPath) {
+        return Props.create(SkipGramDistributor.class, () -> new SkipGramDistributor(localCorpusPartitionPath));
     }
 
-    private final Vocabulary vocabulary;
+    public static class CreateAndDistributeSkipGrams implements Serializable {
+        private static final long serialVersionUID = 5302470673035938491L;
+    }
+
     private final FileWordIterator fileIterator;
     private final List<String> words = new ArrayList<>();
     private final Map<ActorRef, List<UnencodedSkipGram>> skipGramsByResponsibleWordEndpoint = new HashMap<>();
-    private final int windowSize;
 
-    private SkipGramDistributor(String localCorpusPartitionPath,
-                                Vocabulary vocabulary, int windowSize) throws FileNotFoundException {
-        this.vocabulary = vocabulary;
-        this.windowSize = windowSize;
+    private SkipGramDistributor(String localCorpusPartitionPath) throws FileNotFoundException {
         this.fileIterator = new FileWordIterator(localCorpusPartitionPath);
     }
 
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
+                   .match(CreateAndDistributeSkipGrams.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
+    }
+
+    private void handle(CreateAndDistributeSkipGrams message) {
+        this.createSkipGrams();
+        for (Map.Entry<ActorRef, List<UnencodedSkipGram>> entry : this.skipGramsByResponsibleWordEndpoint.entrySet()) {
+            this.distributeSkipGrams(entry.getKey(), entry.getValue());
+        }
     }
 
     private void createSkipGrams() {
@@ -59,23 +66,23 @@ public class SkipGramDistributor extends AbstractReapedActor {
             }
 
             ActorRef responsibleWordEndpoint =
-                    vocabulary.getWordEndpointResolver().resolve(skipGram.getExpectedOutput());
+                    WordEndpointResolver.getInstance().resolve(skipGram.getExpectedOutput());
             this.skipGramsByResponsibleWordEndpoint.putIfAbsent(responsibleWordEndpoint, new ArrayList<>());
             this.skipGramsByResponsibleWordEndpoint.get(responsibleWordEndpoint).add(skipGram);
         }
 
-        this.words.subList(0, this.words.size() - this.windowSize).clear();
+        this.words.subList(0, this.words.size() - Word2VecModel.getInstance().getConfiguration().getWindowSize()).clear();
     }
 
     private UnencodedSkipGram createSkipGramForWordAt(int wordIndex) {
         String expectedOutput = this.words.get(wordIndex);
-        if (!this.vocabulary.contains(expectedOutput)) {
-            return UnencodedSkipGram.Empty();
+        if (!Vocabulary.getInstance().contains(expectedOutput)) {
+            return UnencodedSkipGram.empty();
         }
 
         UnencodedSkipGram skipGram = new UnencodedSkipGram(expectedOutput);
-        int startIndex = Math.max(0, wordIndex - this.windowSize);
-        int endIndex = Math.min(this.words.size() - 1, wordIndex + this.windowSize);
+        int startIndex = Math.max(0, wordIndex - Word2VecModel.getInstance().getConfiguration().getWindowSize());
+        int endIndex = Math.min(this.words.size() - 1, wordIndex + Word2VecModel.getInstance().getConfiguration().getWindowSize());
 
         for (int i = startIndex; i <= endIndex; ++i) {
             if (i == wordIndex) {
@@ -83,7 +90,7 @@ public class SkipGramDistributor extends AbstractReapedActor {
             }
 
             String input = this.words.get(i);
-            if (!this.vocabulary.contains(input)) {
+            if (!Vocabulary.getInstance().contains(input)) {
                 continue;
             }
 
@@ -91,5 +98,17 @@ public class SkipGramDistributor extends AbstractReapedActor {
         }
 
         return skipGram;
+    }
+
+    private void distributeSkipGrams(ActorRef responsibleEndpoint, List<UnencodedSkipGram> payload) {
+        SkipGramReceiver.ProcessUnencodedSkipGrams message = new SkipGramReceiver.ProcessUnencodedSkipGrams();
+        for (UnencodedSkipGram unencodedSkipGram : payload) {
+            for (EncodedSkipGram encodedSkipGram : unencodedSkipGram.extractEncodedSkipGrams()) {
+                responsibleEndpoint.tell(new SkipGramReceiver.ProcessEncodedSkipGram(encodedSkipGram), this.self());
+            }
+            message.getSkipGrams().add(unencodedSkipGram);
+        }
+        responsibleEndpoint.tell(message, this.self());
+        this.skipGramsByResponsibleWordEndpoint.remove(responsibleEndpoint);
     }
 }

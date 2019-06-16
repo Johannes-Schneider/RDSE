@@ -3,10 +3,10 @@ package de.hpi.rdse.jujo.actors.common;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.util.ByteString;
+import de.hpi.rdse.jujo.actors.common.training.SkipGramReceiver;
 import de.hpi.rdse.jujo.actors.common.training.TrainingCoordinator;
 import de.hpi.rdse.jujo.actors.common.wordCount.WordCountCoordinator;
 import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
-import de.hpi.rdse.jujo.actors.slave.Slave;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,10 +34,9 @@ public class WorkerCoordinator extends AbstractReapedActor {
         private String localCorpusPartitionPath;
     }
 
-    @Builder @NoArgsConstructor @AllArgsConstructor @Getter
+    @NoArgsConstructor
     public static class VocabularyReadyForTraining implements Serializable {
         private static final long serialVersionUID = -880424032423441020L;
-        private Vocabulary vocabulary;
     }
 
     private final ActorRef wordEndpoint;
@@ -61,7 +60,9 @@ public class WorkerCoordinator extends AbstractReapedActor {
                 .match(ProcessCorpusChunk.class, this::handle)
                 .match(CorpusTransferCompleted.class, this::handle)
                 .match(VocabularyReadyForTraining.class, this::handle)
-                .match(Slave.InitialParametersFromMaster.class, this::handle)
+                .match(WordEndpoint.VocabularyCreated.class, this::handle)
+                .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
+                .match(SkipGramReceiver.ProcessUnencodedSkipGrams.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
     }
@@ -91,14 +92,21 @@ public class WorkerCoordinator extends AbstractReapedActor {
     private void handle(VocabularyReadyForTraining message) {
         this.trainingCoordinator.tell(
                 TrainingCoordinator.StartTraining.builder()
-                                                 .vocabulary(message.vocabulary)
                                                  .numberOfLocalWorkers(this.maxNumberOfLocalWorkers)
                                                  .localCorpusPartitionPath(this.localCorpusPartitionPath)
                                                  .build(),
                 this.self());
     }
 
-    private void handle(Slave.InitialParametersFromMaster message) {
-        this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props(message.getTrainingWindowSize()));
+    private void handle(WordEndpoint.VocabularyCreated message) {
+        this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props());
+    }
+
+    private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {
+        this.trainingCoordinator.tell(message, this.sender());
+    }
+
+    private void handle(SkipGramReceiver.ProcessUnencodedSkipGrams message) {
+        this.trainingCoordinator.tell(message, this.sender());
     }
 }

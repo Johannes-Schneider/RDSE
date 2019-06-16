@@ -7,6 +7,7 @@ import akka.actor.Terminated;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.slave.Sheep;
 import de.hpi.rdse.jujo.startup.MasterCommand;
+import de.hpi.rdse.jujo.training.Word2VecConfiguration;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -50,10 +51,10 @@ public class Shepherd extends AbstractReapedActor {
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
-                .match(SlaveNodeRegistrationMessage.class, this::handle)
-                .match(Terminated.class, this::handle)
-                .matchAny(this::handleAny)
-                .build();
+                   .match(SlaveNodeRegistrationMessage.class, this::handle)
+                   .match(Terminated.class, this::handle)
+                   .matchAny(this::handleAny)
+                   .build();
     }
 
     private void handle(SlaveNodeRegistrationMessage message) {
@@ -62,7 +63,9 @@ public class Shepherd extends AbstractReapedActor {
         }
         this.log().info(String.format("New subscription: %s with available workers", this.sender()));
 
-        this.sender().tell(new Sheep.AcknowledgeRegistration(this.masterCommand.getWindowSize()), this.self());
+        this.sender().tell(
+                new Sheep.AcknowledgeRegistration(Word2VecConfiguration.fromMasterCommand(this.masterCommand)),
+                this.self());
         this.context().watch(sender());
         this.master.tell(message, this.self());
     }

@@ -22,6 +22,23 @@ public class Vocabulary implements Iterable<String> {
     private static final int MIN_NUMBER_OF_HASHING_BITS = 2048;
     private static final HashFunction HASH_FUNCTION = Hashing.goodFastHash(MIN_NUMBER_OF_HASHING_BITS);
 
+    private static Vocabulary instance;
+
+    public static void createInstance(String[] words) {
+        if (Vocabulary.instance != null) {
+            Log.error("Tried to create a second instance of Vocabulary!");
+            return;
+        }
+        Vocabulary.instance = new Vocabulary(words);
+    }
+
+    public static Vocabulary getInstance() {
+        if (Vocabulary.instance == null) {
+            Log.error("Called getInstance of Vocabulary without calling createInstance first!");
+        }
+        return Vocabulary.instance;
+    }
+
     public static byte[] encode(String phrase) {
         return WORD_ENCODING.encode(phrase).array();
     }
@@ -47,23 +64,17 @@ public class Vocabulary implements Iterable<String> {
     }
 
     private final String[] words;
-    private final WordEndpointResolver wordEndpointResolver;
     private final Map<ActorRef, VocabularyPartition> vocabularyPartitions = new HashMap<>();
 
-    public Vocabulary(String[] words, WordEndpointResolver wordEndpointResolver) {
+    private Vocabulary(String[] words) {
         this.words = words;
         Arrays.sort(this.words);
-        this.wordEndpointResolver = wordEndpointResolver;
 
         VocabularyPartition localPartition = new VocabularyPartition(this.length(), new LocalWordLookupStrategy(this.words));
-        this.vocabularyPartitions.put(this.wordEndpointResolver.localWordEndpoint(), localPartition);
+        this.vocabularyPartitions.put(WordEndpointResolver.getInstance().localWordEndpoint(), localPartition);
     }
 
-    public WordEndpointResolver getWordEndpointResolver() {
-        return this.wordEndpointResolver;
-    }
-
-    public long length() {
+    public int length() {
         return this.words.length;
     }
 
@@ -76,14 +87,14 @@ public class Vocabulary implements Iterable<String> {
         this.vocabularyPartitions.putIfAbsent(remoteWordEndpoint, vocabulary);
 
         if (this.isComplete()) {
-            this.initializeVocabularies();
+            this.initializePartitions();
         }
     }
 
-    private void initializeVocabularies() {
+    private void initializePartitions() {
         long firstWordIndex = 0L;
         try {
-            for (ActorRef responsibleWordEndpoint : this.wordEndpointResolver.all()) {
+            for (ActorRef responsibleWordEndpoint : WordEndpointResolver.getInstance().all()) {
                 this.vocabularyPartitions.get(responsibleWordEndpoint).initialize(firstWordIndex);
                 firstWordIndex += this.vocabularyPartitions.get(responsibleWordEndpoint).length();
             }
@@ -94,11 +105,11 @@ public class Vocabulary implements Iterable<String> {
     }
 
     public boolean isComplete() {
-        if (!this.wordEndpointResolver.isReadyToResolve()) {
+        if (!WordEndpointResolver.getInstance().isReadyToResolve()) {
             return false;
         }
 
-        return this.vocabularyPartitions.keySet().containsAll(this.wordEndpointResolver.all());
+        return this.vocabularyPartitions.keySet().containsAll(WordEndpointResolver.getInstance().all());
     }
 
     public boolean contains(String word) {
@@ -106,15 +117,15 @@ public class Vocabulary implements Iterable<String> {
     }
 
     public boolean containsLocally(String word) {
-        return this.getResponsibleWordEndpoint(word) == this.wordEndpointResolver.localWordEndpoint();
+        return this.getResponsibleWordEndpoint(word) == WordEndpointResolver.getInstance().localWordEndpoint();
     }
 
     private ActorRef getResponsibleWordEndpoint(String word) {
-        ActorRef responsibleWordEndpoint = this.wordEndpointResolver.resolve(word);
+        ActorRef responsibleWordEndpoint = WordEndpointResolver.getInstance().resolve(word);
 
         if (responsibleWordEndpoint == ActorRef.noSender()) {
             Log.warn("Trying to resolve a word, while WordEndpointResolver is not yet ready");
-            responsibleWordEndpoint = this.wordEndpointResolver.localWordEndpoint();
+            responsibleWordEndpoint = WordEndpointResolver.getInstance().localWordEndpoint();
         }
 
         return responsibleWordEndpoint;
@@ -126,6 +137,10 @@ public class Vocabulary implements Iterable<String> {
             throw new IllegalArgumentException("The provided word is not part of this local Vocabulary");
         }
 
-        return wordIndex + this.vocabularyPartitions.get(this.wordEndpointResolver.localWordEndpoint()).firstWordIndex();
+        return wordIndex + this.localFirstWordIndex();
+    }
+
+    public long localFirstWordIndex() {
+        return this.vocabularyPartitions.get(WordEndpointResolver.getInstance().localWordEndpoint()).firstWordIndex();
     }
 }

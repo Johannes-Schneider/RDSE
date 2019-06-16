@@ -9,6 +9,8 @@ import akka.actor.Scheduler;
 import akka.remote.DisassociatedEvent;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.master.Shepherd;
+import de.hpi.rdse.jujo.training.Word2VecConfiguration;
+import de.hpi.rdse.jujo.training.Word2VecModel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,7 +36,7 @@ public class Sheep extends AbstractReapedActor {
     @NoArgsConstructor @AllArgsConstructor @Getter
     public static class AcknowledgeRegistration implements Serializable {
         private static final long serialVersionUID = 3226726675135579564L;
-        private int trainingWindowSize;
+        private Word2VecConfiguration word2VecConfiguration;
     }
 
     private Cancellable connectSchedule;
@@ -75,9 +77,7 @@ public class Sheep extends AbstractReapedActor {
     private void handle(AcknowledgeRegistration message) {
         this.cancelRunningConnectSchedule();
         this.log().info("Subscription successfully acknowledged by {}.", this.getSender());
-        this.slave.tell(Slave.InitialParametersFromMaster.builder()
-                                                        .trainingWindowSize(message.getTrainingWindowSize())
-                                                        .build(), this.self());
+        Word2VecModel.setModelConfiguration(message.getWord2VecConfiguration());
     }
 
     private void cancelRunningConnectSchedule() {

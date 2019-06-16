@@ -11,6 +11,8 @@ public class MasterCommand extends CommandBase {
     public static final int DEFAULT_PORT = 7789;
     public static final int DEFAULT_DIMENSIONS = 100;
     public static final int DEFAULT_WINDOW_SIZE = 3;
+    public static final int DEFAULT_NUMBER_OF_EPOCHS = 10;
+    public static final float DEFAULT_LEARNING_RATE = 0.05f;
 
     @Parameter(names = {"-h", "--host"}, description = "host address of this system")
     String host = getDefaultHost();
@@ -29,4 +31,10 @@ public class MasterCommand extends CommandBase {
 
     @Parameter(names = {"-w", "--window-size"}, description = "size of window for building skip-grams")
     int windowSize = DEFAULT_WINDOW_SIZE;
+
+    @Parameter(names = {"-e", "--epochs"}, description = "number of epochs to train")
+    int numberOfEpochs = DEFAULT_NUMBER_OF_EPOCHS;
+
+    @Parameter(names = {"-l", "--learning-rate"}, description = "initial learning rate")
+    float learningRate = DEFAULT_LEARNING_RATE;
 }

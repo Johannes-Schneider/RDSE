@@ -15,9 +15,6 @@ import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.ByteArrayInputStream;
@@ -34,11 +31,9 @@ public class VocabularyDistributor extends AbstractReapedActor {
         return Props.create(VocabularyDistributor.class, VocabularyDistributor::new);
     }
 
-    @NoArgsConstructor @AllArgsConstructor @Builder @Getter
+    @NoArgsConstructor
     public static class DistributeVocabulary implements Serializable {
         private static final long serialVersionUID = -126729453919355190L;
-        private Vocabulary vocabulary;
-        private WordEndpointResolver wordEndpointResolver;
     }
 
     private final Materializer materializer;
@@ -56,31 +51,33 @@ public class VocabularyDistributor extends AbstractReapedActor {
     }
 
     private void handle(DistributeVocabulary message) throws IOException {
-        BloomFilter filter = this.createBloomFilter(message.getVocabulary());
+        BloomFilter filter = this.createBloomFilter();
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         filter.writeTo(outputStream);
 
         this.log().info(String.format("BloomFilter size = %d bytes", outputStream.size()));
-        this.distributeVocabularyToAllEndpoints(message.getWordEndpointResolver(), outputStream, message.getVocabulary().length());
+        this.distributeVocabularyToAllEndpoints(outputStream, Vocabulary.getInstance().length());
     }
 
-    private BloomFilter<String> createBloomFilter(Vocabulary vocabulary) {
+    private BloomFilter<String> createBloomFilter() {
         this.log().info(String.format("Building BloomFilter for %d words and %f false positive rate",
-                                      vocabulary.length(),
+                                      Vocabulary.getInstance().length(),
                                       BLOOM_FILTER_FALSE_POSITIVE_RATE));
-        BloomFilter<String> filter = BloomFilter.create(Funnels.stringFunnel(Vocabulary.WORD_ENCODING), vocabulary.length(), BLOOM_FILTER_FALSE_POSITIVE_RATE);
-        for (String word : vocabulary) {
+        BloomFilter<String> filter =
+                BloomFilter.create(Funnels.stringFunnel(Vocabulary.WORD_ENCODING), Vocabulary.getInstance().length(),
+                BLOOM_FILTER_FALSE_POSITIVE_RATE);
+        for (String word : Vocabulary.getInstance()) {
             filter.put(word);
         }
 
         return filter;
     }
 
-    private void distributeVocabularyToAllEndpoints(WordEndpointResolver resolver, ByteArrayOutputStream vocabularyStream, long vocabularyLength) {
+    private void distributeVocabularyToAllEndpoints(ByteArrayOutputStream vocabularyStream, long vocabularyLength) {
         this.log().info("About to distribute vocabulary to all WordEndpoints");
 
-        for (ActorRef endpoint : resolver.all()) {
-            if (endpoint == resolver.localWordEndpoint()) {
+        for (ActorRef endpoint : WordEndpointResolver.getInstance().all()) {
+            if (endpoint == WordEndpointResolver.getInstance().localWordEndpoint()) {
                 continue;
             }
 
