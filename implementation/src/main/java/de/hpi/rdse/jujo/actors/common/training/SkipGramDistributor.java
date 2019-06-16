@@ -11,7 +11,6 @@ import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 
 import java.io.FileNotFoundException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,27 +23,24 @@ public class SkipGramDistributor extends AbstractReapedActor {
         return Props.create(SkipGramDistributor.class, () -> new SkipGramDistributor(localCorpusPartitionPath));
     }
 
-    public static class CreateAndDistributeSkipGrams implements Serializable {
-        private static final long serialVersionUID = 5302470673035938491L;
-    }
-
     private final FileWordIterator fileIterator;
     private final List<String> words = new ArrayList<>();
     private final Map<ActorRef, List<UnencodedSkipGram>> skipGramsByResponsibleWordEndpoint = new HashMap<>();
 
     private SkipGramDistributor(String localCorpusPartitionPath) throws FileNotFoundException {
         this.fileIterator = new FileWordIterator(localCorpusPartitionPath);
+        this.startSkipGramDistribution();
     }
 
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
-                   .match(CreateAndDistributeSkipGrams.class, this::handle)
+                   .match(SkipGramReceiver.RequestNextSkipGramChunk.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
 
-    private void handle(CreateAndDistributeSkipGrams message) {
+    private void startSkipGramDistribution() {
         this.createSkipGrams();
         for (Map.Entry<ActorRef, List<UnencodedSkipGram>> entry : this.skipGramsByResponsibleWordEndpoint.entrySet()) {
             this.distributeSkipGrams(entry.getKey(), entry.getValue());
@@ -110,5 +106,10 @@ public class SkipGramDistributor extends AbstractReapedActor {
         }
         responsibleEndpoint.tell(message, this.self());
         this.skipGramsByResponsibleWordEndpoint.remove(responsibleEndpoint);
+    }
+
+    private void handle(SkipGramReceiver.RequestNextSkipGramChunk message) {
+        // TODO: Implement tracking of file pointer (corpusPartition) for each node and send next chunk of relevant
+        // skip grams to requesting node
     }
 }

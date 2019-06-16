@@ -48,11 +48,10 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private void handle(StartTraining message) {
-        this.initializeSkipGramDistributor(message.getLocalCorpusPartitionPath());
-        // TODO: start training
+        this.initializeAndStartSkipGramDistribution(message.getLocalCorpusPartitionPath());
     }
 
-    private void initializeSkipGramDistributor(String localCorpusPartitionPath) {
+    private void initializeAndStartSkipGramDistribution(String localCorpusPartitionPath) {
         if (this.skipGramDistributor == null) {
             return;
         }

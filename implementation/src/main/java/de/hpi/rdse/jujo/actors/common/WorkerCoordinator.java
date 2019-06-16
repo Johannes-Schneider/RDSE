@@ -7,9 +7,7 @@ import de.hpi.rdse.jujo.actors.common.training.SkipGramReceiver;
 import de.hpi.rdse.jujo.actors.common.training.TrainingCoordinator;
 import de.hpi.rdse.jujo.actors.common.wordCount.WordCountCoordinator;
 import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
-import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
