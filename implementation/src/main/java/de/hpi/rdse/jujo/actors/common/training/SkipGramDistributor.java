@@ -8,6 +8,7 @@ import de.hpi.rdse.jujo.training.UnencodedSkipGram;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 
 import java.io.FileNotFoundException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -16,21 +17,23 @@ import java.util.Map;
 
 public class SkipGramDistributor extends AbstractReapedActor {
 
-    private static final int WINDOW_SIZE = 5; // TODO: change this to be a CLI argument
+    private static final int MAX_NUMBER_OF_SKIP_GRAMS_PER_MESSAGE = 100;
 
-    public static Props props(String localCorpusPartitionPath, Vocabulary vocabulary) {
+    public static Props props(String localCorpusPartitionPath, Vocabulary vocabulary, int windowSize) {
         return Props.create(SkipGramDistributor.class, () -> new SkipGramDistributor(localCorpusPartitionPath,
-                                                                                     vocabulary));
+                vocabulary, windowSize));
     }
 
     private final Vocabulary vocabulary;
     private final FileWordIterator fileIterator;
     private final List<String> words = new ArrayList<>();
     private final Map<ActorRef, List<UnencodedSkipGram>> skipGramsByResponsibleWordEndpoint = new HashMap<>();
+    private final int windowSize;
 
     private SkipGramDistributor(String localCorpusPartitionPath,
-                                Vocabulary vocabulary) throws FileNotFoundException {
+                                Vocabulary vocabulary, int windowSize) throws FileNotFoundException {
         this.vocabulary = vocabulary;
+        this.windowSize = windowSize;
         this.fileIterator = new FileWordIterator(localCorpusPartitionPath);
     }
 
@@ -61,7 +64,7 @@ public class SkipGramDistributor extends AbstractReapedActor {
             this.skipGramsByResponsibleWordEndpoint.get(responsibleWordEndpoint).add(skipGram);
         }
 
-        this.words.subList(0, this.words.size() - WINDOW_SIZE).clear();
+        this.words.subList(0, this.words.size() - this.windowSize).clear();
     }
 
     private UnencodedSkipGram createSkipGramForWordAt(int wordIndex) {
@@ -71,8 +74,8 @@ public class SkipGramDistributor extends AbstractReapedActor {
         }
 
         UnencodedSkipGram skipGram = new UnencodedSkipGram(expectedOutput);
-        int startIndex = Math.max(0, wordIndex - WINDOW_SIZE);
-        int endIndex = Math.min(this.words.size() - 1, wordIndex + WINDOW_SIZE);
+        int startIndex = Math.max(0, wordIndex - this.windowSize);
+        int endIndex = Math.min(this.words.size() - 1, wordIndex + this.windowSize);
 
         for (int i = startIndex; i <= endIndex; ++i) {
             if (i == wordIndex) {

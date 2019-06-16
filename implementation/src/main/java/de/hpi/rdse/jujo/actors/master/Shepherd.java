@@ -6,6 +6,7 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.slave.Sheep;
+import de.hpi.rdse.jujo.startup.MasterCommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,8 +19,8 @@ public class Shepherd extends AbstractReapedActor {
 
     public static final String DEFAULT_NAME = "shepherd";
 
-    public static Props props(final ActorRef master) {
-        return Props.create(Shepherd.class, () -> new Shepherd(master));
+    public static Props props(final ActorRef master, final MasterCommand masterCommand) {
+        return Props.create(Shepherd.class, () -> new Shepherd(master, masterCommand));
     }
 
     @Getter @NoArgsConstructor @AllArgsConstructor
@@ -30,9 +31,11 @@ public class Shepherd extends AbstractReapedActor {
 
     private final ActorRef master;
     private final Set<ActorRef> slaves = new HashSet<>();
+    private final MasterCommand masterCommand;
 
-    private Shepherd(final ActorRef master) {
+    private Shepherd(final ActorRef master, final MasterCommand masterCommand) {
         this.master = master;
+        this.masterCommand = masterCommand;
         this.context().watch(master);
     }
 
@@ -59,7 +62,7 @@ public class Shepherd extends AbstractReapedActor {
         }
         this.log().info(String.format("New subscription: %s with available workers", this.sender()));
 
-        this.sender().tell(new Sheep.AcknowledgeRegistration(), this.self());
+        this.sender().tell(new Sheep.AcknowledgeRegistration(this.masterCommand.getWindowSize()), this.self());
         this.context().watch(sender());
         this.master.tell(message, this.self());
     }

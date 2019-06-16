@@ -30,7 +30,7 @@ public class Bootstrap {
                 Master.DEFAULT_NAME
         );
 
-        final ActorRef shepherd = actorSystem.actorOf(Shepherd.props(master), Shepherd.DEFAULT_NAME);
+        final ActorRef shepherd = actorSystem.actorOf(Shepherd.props(master, masterCommand), Shepherd.DEFAULT_NAME);
 
         Bootstrap.awaitTermination(actorSystem);
     }

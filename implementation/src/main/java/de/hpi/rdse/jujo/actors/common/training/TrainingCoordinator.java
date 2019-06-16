@@ -14,8 +14,8 @@ import java.io.Serializable;
 
 public class TrainingCoordinator extends AbstractReapedActor {
 
-    public static Props props() {
-        return Props.create(TrainingCoordinator.class, TrainingCoordinator::new);
+    public static Props props(int windowSize) {
+        return Props.create(TrainingCoordinator.class, () -> new TrainingCoordinator(windowSize));
     }
 
     @NoArgsConstructor @AllArgsConstructor @Builder @Getter
@@ -33,8 +33,11 @@ public class TrainingCoordinator extends AbstractReapedActor {
 
     private ActorRef skipGramDistributor;
     private ActorRef skipGramReceiver;
+    private int windowSize;
 
-    private TrainingCoordinator() {}
+    private TrainingCoordinator(int windowSize) {
+        this.windowSize = windowSize;
+    }
 
     @Override
     public Receive createReceive() {
@@ -58,7 +61,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
             return;
         }
         this.skipGramDistributor = this.context().actorOf(SkipGramDistributor.props(localCorpusPartitionPath,
-                vocabulary));
+                vocabulary, this.windowSize));
     }
 
     private void initializeSkipGramReceiver(Vocabulary vocabulary) {

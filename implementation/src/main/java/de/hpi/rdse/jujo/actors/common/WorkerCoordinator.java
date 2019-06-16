@@ -6,6 +6,7 @@ import akka.util.ByteString;
 import de.hpi.rdse.jujo.actors.common.training.TrainingCoordinator;
 import de.hpi.rdse.jujo.actors.common.wordCount.WordCountCoordinator;
 import de.hpi.rdse.jujo.actors.slave.CorpusReceiver;
+import de.hpi.rdse.jujo.actors.slave.Slave;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,7 +43,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
     private final ActorRef wordEndpoint;
     private ActorRef wordCountCoordinator;
     private final ActorRef corpusReceiver;
-    private final ActorRef trainingCoordinator;
+    private ActorRef trainingCoordinator;
     private final int maxNumberOfLocalWorkers;
     private String localCorpusPartitionPath;
 
@@ -50,7 +51,6 @@ public class WorkerCoordinator extends AbstractReapedActor {
         this.wordEndpoint = this.context().actorOf(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
         this.corpusReceiver = this.context().actorOf(
                 CorpusReceiver.props(tempWorkingDir));
-        this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props());
         this.maxNumberOfLocalWorkers = maxNumberOfLocalWorkers;
     }
 
@@ -61,6 +61,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
                 .match(ProcessCorpusChunk.class, this::handle)
                 .match(CorpusTransferCompleted.class, this::handle)
                 .match(VocabularyReadyForTraining.class, this::handle)
+                .match(Slave.InitialParametersFromMaster.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
     }
@@ -95,5 +96,9 @@ public class WorkerCoordinator extends AbstractReapedActor {
                                                  .localCorpusPartitionPath(this.localCorpusPartitionPath)
                                                  .build(),
                 this.self());
+    }
+
+    private void handle(Slave.InitialParametersFromMaster message) {
+        this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props(message.getTrainingWindowSize()));
     }
 }

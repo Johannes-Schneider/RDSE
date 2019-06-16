@@ -31,9 +31,10 @@ public class Sheep extends AbstractReapedActor {
         private Address shepherdAddress;
     }
 
-    @NoArgsConstructor
+    @NoArgsConstructor @AllArgsConstructor @Getter
     public static class AcknowledgeRegistration implements Serializable {
         private static final long serialVersionUID = 3226726675135579564L;
+        private int trainingWindowSize;
     }
 
     private Cancellable connectSchedule;
@@ -74,6 +75,9 @@ public class Sheep extends AbstractReapedActor {
     private void handle(AcknowledgeRegistration message) {
         this.cancelRunningConnectSchedule();
         this.log().info("Subscription successfully acknowledged by {}.", this.getSender());
+        this.slave.tell(Slave.InitialParametersFromMaster.builder()
+                                                        .trainingWindowSize(message.getTrainingWindowSize())
+                                                        .build(), this.self());
     }
 
     private void cancelRunningConnectSchedule() {
