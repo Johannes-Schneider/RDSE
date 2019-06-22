@@ -7,5 +7,5 @@ import lombok.Getter;
 public class WordEmbedding {
 
     private long oneHotIndex;
-    private float[] weights;
+    private WeightVector weights;
 }
