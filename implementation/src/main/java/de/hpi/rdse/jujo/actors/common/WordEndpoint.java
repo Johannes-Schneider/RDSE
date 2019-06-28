@@ -14,6 +14,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.apache.commons.math3.linear.RealVector;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -49,6 +50,13 @@ public class WordEndpoint extends AbstractReapedActor {
         private List<UnencodedSkipGram> unencodedSkipGrams = new ArrayList<>();
     }
 
+    @NoArgsConstructor @AllArgsConstructor @Getter
+    public static class UpdateWeight implements Serializable {
+        private static final long serialVersionUID = -6193882947371330180L;
+        private long oneHotIndex;
+        private RealVector gradient;
+    }
+
     private final ActorRef subsampler;
     private final ActorRef vocabularyDistributor;
     private ActorRef vocabularyReceiver;
@@ -72,6 +80,7 @@ public class WordEndpoint extends AbstractReapedActor {
                    .match(SkipGramReceiver.ProcessUnencodedSkipGrams.class, this::handle)
                    .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
                    .match(EncodeSkipGrams.class, this::handle)
+                   .match(UpdateWeight.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -138,5 +147,9 @@ public class WordEndpoint extends AbstractReapedActor {
                 this.sender().tell(new SkipGramReceiver.ProcessEncodedSkipGram(encodedSkipGram), this.self());
             }
         }
+    }
+
+    private void handle(UpdateWeight message) {
+        Word2VecModel.getInstance().updateWeight(message.getOneHotIndex(), message.getGradient());
     }
 }

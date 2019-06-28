@@ -12,6 +12,7 @@ import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.apache.commons.math3.linear.RealVector;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -63,7 +64,9 @@ public class SkipGramReceiver extends AbstractReapedActor {
     }
 
     private void handle(ProcessEncodedSkipGram message) {
-        Word2VecModel.getInstance().train(message.getSkipGram());
+        RealVector inputGradient = Word2VecModel.getInstance().train(message.getSkipGram());
+        long oneHotIndex = message.getSkipGram().getEncodedInput().getOneHotIndex();
+        this.sender().tell(new WordEndpoint.UpdateWeight(oneHotIndex, inputGradient), this.self());
     }
 
     private void handle(ProcessUnencodedSkipGrams message) {
@@ -73,7 +76,7 @@ public class SkipGramReceiver extends AbstractReapedActor {
         }
         for (UnencodedSkipGram unencodedSkipGram : message.getSkipGrams()) {
             for (EncodedSkipGram encodedSkipGram : unencodedSkipGram.extractEncodedSkipGrams()) {
-                this.self().tell(new ProcessEncodedSkipGram(encodedSkipGram), this.self());
+                this.self().tell(new ProcessEncodedSkipGram(encodedSkipGram), WordEndpointResolver.getInstance().localWordEndpoint());
             }
             this.addToUnencodedSkipGramsToResolve(unencodedSkipGram);
         }

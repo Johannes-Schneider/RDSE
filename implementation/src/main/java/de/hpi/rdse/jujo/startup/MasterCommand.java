@@ -13,6 +13,7 @@ public class MasterCommand extends CommandBase {
     public static final int DEFAULT_WINDOW_SIZE = 3;
     public static final int DEFAULT_NUMBER_OF_EPOCHS = 10;
     public static final float DEFAULT_LEARNING_RATE = 0.05f;
+    public static final int DEFAULT_NUMBER_OF_NEGATIVE_SAMPLES = 5;
 
     @Parameter(names = {"-h", "--host"}, description = "host address of this system")
     String host = getDefaultHost();
@@ -37,4 +38,7 @@ public class MasterCommand extends CommandBase {
 
     @Parameter(names = {"-l", "--learning-rate"}, description = "initial learning rate")
     float learningRate = DEFAULT_LEARNING_RATE;
+
+    @Parameter(names = {"-n", "--negative-samples"}, description = "number of negative samples")
+    int numberOfNegativeSamples = DEFAULT_NUMBER_OF_NEGATIVE_SAMPLES;
 }

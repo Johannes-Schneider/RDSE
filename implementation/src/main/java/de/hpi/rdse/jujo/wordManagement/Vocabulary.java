@@ -4,6 +4,8 @@ import akka.actor.ActorRef;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import de.hpi.rdse.jujo.training.AliasSampler;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -11,8 +13,13 @@ import javax.management.OperationsException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public class Vocabulary implements Iterable<String> {
 
@@ -24,12 +31,12 @@ public class Vocabulary implements Iterable<String> {
 
     private static Vocabulary instance;
 
-    public static void createInstance(String[] words) {
+    public static void createInstance(TreeMap<String, Long> subsampledWordCounts) {
         if (Vocabulary.instance != null) {
             Log.error("Tried to create a second instance of Vocabulary!");
             return;
         }
-        Vocabulary.instance = new Vocabulary(words);
+        Vocabulary.instance = new Vocabulary(subsampledWordCounts);
     }
 
     public static Vocabulary getInstance() {
@@ -65,11 +72,11 @@ public class Vocabulary implements Iterable<String> {
 
     private final String[] words;
     private final Map<ActorRef, VocabularyPartition> vocabularyPartitions = new HashMap<>();
+    private final AliasSampler aliasSampler;
 
-    private Vocabulary(String[] words) {
-        this.words = words;
-        Arrays.sort(this.words);
-
+    private Vocabulary(TreeMap<String, Long> subsampledWordCounts) {
+        this.words = subsampledWordCounts.keySet().toArray(new String[0]);
+        this.aliasSampler = new AliasSampler(subsampledWordCounts.values());
         VocabularyPartition localPartition = new VocabularyPartition(this.length(), new LocalWordLookupStrategy(this.words));
         this.vocabularyPartitions.put(WordEndpointResolver.getInstance().localWordEndpoint(), localPartition);
     }
@@ -142,5 +149,19 @@ public class Vocabulary implements Iterable<String> {
 
     public long localFirstWordIndex() {
         return this.vocabularyPartitions.get(WordEndpointResolver.getInstance().localWordEndpoint()).firstWordIndex();
+    }
+
+    public int[] drawLocalSamples(int numberOfSamples, long... excludedOneHotIndices) {
+        Set<Integer> uniqueLocalIndices = new HashSet<>();
+        List<Long> excludedIndices = Arrays.stream(excludedOneHotIndices).boxed().collect(Collectors.toList());
+        while (uniqueLocalIndices.size() < numberOfSamples) {
+            int localIndex = this.aliasSampler.drawLocalWordIndex();
+            if (excludedIndices.contains(this.localFirstWordIndex() + localIndex)) {
+                continue;
+            }
+
+            uniqueLocalIndices.add(localIndex);
+        }
+        return ArrayUtils.toPrimitive((Integer[]) uniqueLocalIndices.toArray());
     }
 }

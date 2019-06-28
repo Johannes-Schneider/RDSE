@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
 public class Subsampler extends AbstractReapedActor {
@@ -172,19 +173,19 @@ public class Subsampler extends AbstractReapedActor {
                 this.totalCorpusSize, this.wordCounts.values().stream().reduce(0L, Long::sum)));
 
         this.subsamplingStrategy = new FrequencyBasedSubsampling(this.totalCorpusSize, this.wordCounts);
-        Set<String> uniqueWords = new HashSet<>();
-        for (String word : this.wordCounts.keySet()) {
-            if (this.subsamplingStrategy.keep(word)) {
-                uniqueWords.add(word);
+        TreeMap<String, Long> uniqueWords = new TreeMap<>();
+        for (Map.Entry<String, Long> wordCount : this.wordCounts.entrySet()) {
+            if (this.subsamplingStrategy.keep(wordCount.getKey())) {
+                uniqueWords.put(wordCount.getKey(), wordCount.getValue());
             } else {
-                this.log().debug(String.format("Subsampling discards word %s", word));
+                this.log().debug(String.format("Subsampling discards word %s", wordCount.getKey()));
             }
         }
 
         this.log().info(String.format("Done sub-sampling; kept %f %% (%d) unique words",
                 uniqueWords.size() / (double) this.wordCounts.size() * 100, uniqueWords.size()));
 
-        Vocabulary.createInstance(uniqueWords.toArray(new String[0]));
+        Vocabulary.createInstance(uniqueWords   );
         WordEndpointResolver.getInstance().localWordEndpoint().tell(new WordEndpoint.VocabularyCreated(), this.self());
     }
 }
