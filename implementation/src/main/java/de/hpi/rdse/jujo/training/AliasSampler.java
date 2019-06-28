@@ -1,36 +1,46 @@
 package de.hpi.rdse.jujo.training;
 
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Random;
 
 public class AliasSampler {
 
+    private Long[] wordCounts;
     private final float[] s;
     private final int[] a;
+    private final Queue<Integer> T_L;
+    private final Queue<Integer> T_H;
     private final Random randomGenerator = new Random();
+    private final long totalNumberOfWords;
 
     public AliasSampler(Collection<Long> localWordCounts) {
-        this.s = this.createS(localWordCounts);
-        this.a = this.createA(localWordCounts);
+        this.wordCounts = localWordCounts.toArray(new Long[0]);
+        this.totalNumberOfWords = localWordCounts.stream().mapToLong(l -> l).sum();
+        this.s = this.createS();
+        this.a = this.createA();
+        this.T_L = this.createT_L();
+        this.T_H = this.createT_H();
         this.buildAlias();
     }
 
-    private float[] createS(Collection<Long> localWordCounts) {
-        long totalNumberOfWords = localWordCounts.stream().reduce(0L, Long::sum);
-        float[] s = new float[localWordCounts.size()];
+    private float[] createS() {
+        float[] s = new float[wordCounts.length];
 
-        int i = 0;
-        for (Long wordCount : localWordCounts) {
-            float frequency = (float) wordCount / totalNumberOfWords;
-            s[i] = frequency * localWordCounts.size();
-            i++;
+        for (int i = 0; i < this.wordCounts.length; i++) {
+            s[i] = this.getWordProbability(i) * wordCounts.length;
         }
 
         return s;
     }
 
-    private int[] createA(Collection<Long> localWordCounts) {
-        int[] a = new int[localWordCounts.size()];
+    private float getWordProbability(int i) {
+        return (float) this.wordCounts[i] / this.totalNumberOfWords;
+    }
+
+    private int[] createA() {
+        int[] a = new int[this.wordCounts.length];
 
         for (int i = 0; i < a.length; ++i) {
             a[i] = i;
@@ -39,20 +49,39 @@ public class AliasSampler {
         return a;
     }
 
+    private Queue<Integer> createT_L() {
+        Queue<Integer> T_L = new LinkedList<>();
+        for (int i=0; i < this.wordCounts.length; i++) {
+            if (getWordProbability(i) < (1.0 / this.wordCounts.length)) {
+                T_L.add(i);
+            }
+        }
+        return T_L;
+    }
+
+    private Queue<Integer> createT_H() {
+        Queue<Integer> T_H = new LinkedList<>();
+        for (int i=0; i < this.wordCounts.length; i++) {
+            if (getWordProbability(i) > (1.0 / this.wordCounts.length)) {
+                T_H.add(i);
+            }
+        }
+        return T_H;
+    }
+
     private void buildAlias() {
-        for (int j = 0; j < this.s.length; ++j) {
-            if (this.s[j] >= 1.0f) {
-                continue;
+        while( this.T_L.size() > 0) {
+            int j = this.T_L.peek();
+            int k = this.T_H.poll();
+            this.s[k] = this.s[k] - 1 + this.s[j];
+            this.a[j] = k;
+            if (this.s[k] < 1.0) {
+                this.T_L.add(k);
             }
-
-            for (int k = 0; k < this.s.length; ++k) {
-                if (this.s[k] <= 1.0f) {
-                    continue;
-                }
-
-                this.a[j] = k;
-                this.s[k] = this.s[k] - 1.0f + this.s[j];
+            if (this.s[k] > 1.0) {
+               this.T_H.add(k);
             }
+            this.T_L.poll();
         }
     }
 
