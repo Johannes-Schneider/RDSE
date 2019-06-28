@@ -1,10 +1,15 @@
 package de.hpi.rdse.jujo.training;
 
+import de.hpi.rdse.jujo.fileHandling.FilePartitioner;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import org.apache.commons.math3.analysis.function.Sigmoid;
 import org.apache.commons.math3.linear.RealVector;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Word2VecTrainingStep {
+
+    private static final Logger Log = LogManager.getLogger(Word2VecTrainingStep.class);
 
     private final Word2VecModel model = Word2VecModel.getInstance();
 
@@ -32,6 +37,7 @@ public class Word2VecTrainingStep {
     }
 
     public RealVector train() {
+        Log.debug(String.format("Start training for expected output word %s", this.skipGram.getExpectedOutput()));
         double sigmoidResult = this.sigmoid.value(this.outputWordOutputWeights.dotProduct(this.input.getWeights())) - 1;
 
         this.outputGradient = input.getWeights().mapMultiply(sigmoidResult);

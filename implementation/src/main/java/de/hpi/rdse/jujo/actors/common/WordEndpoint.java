@@ -103,6 +103,7 @@ public class WordEndpoint extends AbstractReapedActor {
 
     private void handle(VocabularyCreated message) {
         this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        this.log().info("WordEndpoint is aware of the fact that the vocabulary has been created.");
 
         this.vocabularyDistributor.tell(new VocabularyDistributor.DistributeVocabulary(), this.self());
         this.context().parent().tell(message, this.self());
@@ -141,6 +142,7 @@ public class WordEndpoint extends AbstractReapedActor {
         for (UnencodedSkipGram unencodedSkipGram : message.getUnencodedSkipGrams()) {
             for (String input : unencodedSkipGram.getInputs()) {
                 if (!Vocabulary.getInstance().containsLocally(input)) {
+                    this.log().warning("Received a skip-gram to encoded although not being responsible for it");
                     continue;
                 }
                 WordEmbedding embeddedInput = Word2VecModel.getInstance().createEmbedding(input);
@@ -148,6 +150,7 @@ public class WordEndpoint extends AbstractReapedActor {
                 this.sender().tell(new SkipGramReceiver.ProcessEncodedSkipGram(encodedSkipGram), this.self());
             }
         }
+        this.log().debug(String.format("Successfully encoded %d skip-grams", message.getUnencodedSkipGrams().size()));
     }
 
     private void handle(UpdateWeight message) {

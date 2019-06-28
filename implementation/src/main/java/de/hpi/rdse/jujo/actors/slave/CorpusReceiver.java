@@ -72,7 +72,7 @@ public class CorpusReceiver extends AbstractReapedActor {
     }
 
     private ByteString handleCorpusChunk(ByteString chunk) {
-        this.log().info(String.format("Received chunk of size %d", chunk.size()));
+        this.log().debug(String.format("Received chunk of size %d", chunk.size()));
         this.context().parent().tell(new WorkerCoordinator.ProcessCorpusChunk(chunk), this.self());
         return chunk;
     }

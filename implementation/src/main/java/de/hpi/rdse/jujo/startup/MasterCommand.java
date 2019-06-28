@@ -30,7 +30,7 @@ public class MasterCommand extends CommandBase {
     @Parameter(names = {"-d", "--dimensions"}, description = "dimensionality of resulting word embeddings")
     int dimensions = DEFAULT_DIMENSIONS;
 
-    @Parameter(names = {"-w", "--window-size"}, description = "size of window for building skip-grams")
+    @Parameter(names = {"--window-size"}, description = "size of window for building skip-grams")
     int windowSize = DEFAULT_WINDOW_SIZE;
 
     @Parameter(names = {"-e", "--epochs"}, description = "number of epochs to train")

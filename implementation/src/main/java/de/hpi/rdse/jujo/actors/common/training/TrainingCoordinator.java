@@ -49,6 +49,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private void handle(StartTraining message) {
+        this.log().info("Start training!");
         this.initializeAndStartSkipGramDistribution(message.getLocalCorpusPartitionPath());
     }
 
@@ -67,6 +68,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private void handle(SkipGramsDistributed message) {
+        this.log().info("Successfully distributed all skip-grams");
         this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 

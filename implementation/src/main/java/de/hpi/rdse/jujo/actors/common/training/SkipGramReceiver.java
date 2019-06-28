@@ -60,6 +60,11 @@ public class SkipGramReceiver extends AbstractReapedActor {
     }
 
     private void handle(ProcessEncodedSkipGram message) {
+        if (!Vocabulary.getInstance().isComplete()) {
+            this.log().info("Postponing encoded skip-gram because vocabulary is not completed yet");
+            this.self().tell(message, this.sender());
+            return;
+        }
         RealVector inputGradient = Word2VecModel.getInstance().train(message.getSkipGram());
         long oneHotIndex = message.getSkipGram().getEncodedInput().getOneHotIndex();
         this.sender().tell(new WordEndpoint.UpdateWeight(oneHotIndex, inputGradient), this.self());
@@ -67,9 +72,12 @@ public class SkipGramReceiver extends AbstractReapedActor {
 
     private void handle(ProcessUnencodedSkipGrams message) {
         if (!Vocabulary.getInstance().isComplete()) {
+            this.log().info(String.format("Postponing %d unencoded skip-grams because vocabulary is not completed " +
+                    "yet", message.getSkipGrams().size()));
             this.self().tell(message, this.sender());
             return;
         }
+        this.log().debug(String.format("Processing %d unencoded skip-grams", message.getSkipGrams().size()));
         for (UnencodedSkipGram unencodedSkipGram : message.getSkipGrams()) {
             for (EncodedSkipGram encodedSkipGram : unencodedSkipGram.extractEncodedSkipGrams()) {
                 this.self().tell(new ProcessEncodedSkipGram(encodedSkipGram), WordEndpointResolver.getInstance().localWordEndpoint());
