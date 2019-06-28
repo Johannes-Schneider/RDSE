@@ -79,6 +79,7 @@ public class WordEndpoint extends AbstractReapedActor {
                    .match(VocabularyCompleted.class, this::handle)
                    .match(SkipGramReceiver.ProcessUnencodedSkipGrams.class, this::handle)
                    .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
+                   .match(SkipGramReceiver.SkipGramChunkTransferred.class, this::handle)
                    .match(EncodeSkipGrams.class, this::handle)
                    .match(UpdateWeight.class, this::handle)
                    .matchAny(this::handleAny)
@@ -151,5 +152,9 @@ public class WordEndpoint extends AbstractReapedActor {
 
     private void handle(UpdateWeight message) {
         Word2VecModel.getInstance().updateWeight(message.getOneHotIndex(), message.getGradient());
+    }
+
+    private void handle(SkipGramReceiver.SkipGramChunkTransferred message) {
+        this.context().parent().tell(message, this.sender());
     }
 }

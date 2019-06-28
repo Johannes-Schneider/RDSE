@@ -43,14 +43,10 @@ public class SkipGramReceiver extends AbstractReapedActor {
         private static final long serialVersionUID = -3803848151388038254L;
     }
 
-    @NoArgsConstructor
-    public static class RequestNextSkipGramChunk implements Serializable {
-        private static final long serialVersionUID = -4382367275556082887L;
-    }
-
     private final Map<ActorRef, Map<String, List<String>>> unencodedSkipGramsByActor = new HashMap<>();
 
-    private SkipGramReceiver() {}
+    private SkipGramReceiver() {
+    }
 
     @Override
     public Receive createReceive() {
@@ -58,7 +54,7 @@ public class SkipGramReceiver extends AbstractReapedActor {
                    .match(ProcessEncodedSkipGram.class, this::handle)
                    .match(ProcessUnencodedSkipGrams.class, this::handle)
                    .match(SkipGramChunkTransferred.class, this::handle)
-                   .match(RequestNextSkipGramChunk.class, this::handle)
+                   .match(SkipGramDistributor.RequestNextSkipGramChunk.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -106,11 +102,11 @@ public class SkipGramReceiver extends AbstractReapedActor {
     }
 
     private void handle(SkipGramChunkTransferred message) {
-        this.self().tell(new RequestNextSkipGramChunk(), this.sender());
+        this.self().tell(new SkipGramDistributor.RequestNextSkipGramChunk(), this.sender());
     }
 
-    private void handle(RequestNextSkipGramChunk message) {
-        this.sender().tell(message, this.self());
+    private void handle(SkipGramDistributor.RequestNextSkipGramChunk message) {
+        this.sender().tell(message, WordEndpointResolver.getInstance().localWordEndpoint());
     }
 
 }

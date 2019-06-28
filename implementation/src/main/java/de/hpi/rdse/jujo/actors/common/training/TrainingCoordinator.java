@@ -43,6 +43,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
                    .match(SkipGramsDistributed.class, this::handle)
                    .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
                    .match(SkipGramReceiver.ProcessUnencodedSkipGrams.class, this::handle)
+                   .match(SkipGramReceiver.SkipGramChunkTransferred.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -74,6 +75,10 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private void handle(SkipGramReceiver.ProcessUnencodedSkipGrams message) {
+        this.skipGramReceiver.tell(message, this.sender());
+    }
+
+    private void handle(SkipGramReceiver.SkipGramChunkTransferred message) {
         this.skipGramReceiver.tell(message, this.sender());
     }
 }
