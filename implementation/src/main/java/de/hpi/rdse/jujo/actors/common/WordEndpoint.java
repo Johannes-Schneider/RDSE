@@ -142,7 +142,6 @@ public class WordEndpoint extends AbstractReapedActor {
         for (UnencodedSkipGram unencodedSkipGram : message.getUnencodedSkipGrams()) {
             for (String input : unencodedSkipGram.getInputs()) {
                 if (!Vocabulary.getInstance().containsLocally(input)) {
-                    this.log().warning("Received a skip-gram to encoded although not being responsible for it");
                     continue;
                 }
                 WordEmbedding embeddedInput = Word2VecModel.getInstance().createEmbedding(input);

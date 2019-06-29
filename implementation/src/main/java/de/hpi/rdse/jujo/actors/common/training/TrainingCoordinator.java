@@ -54,14 +54,14 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private void initializeAndStartSkipGramDistribution(String localCorpusPartitionPath) {
-        if (this.skipGramDistributor == null) {
+        if (this.skipGramDistributor != null) {
             return;
         }
         this.skipGramDistributor = this.context().actorOf(SkipGramDistributor.props(localCorpusPartitionPath));
     }
 
     private void initializeSkipGramReceiver() {
-        if (this.skipGramDistributor == null) {
+        if (this.skipGramReceiver != null) {
             return;
         }
         this.skipGramReceiver = this.context().actorOf(SkipGramReceiver.props());

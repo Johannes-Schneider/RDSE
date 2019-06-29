@@ -2,12 +2,13 @@ package de.hpi.rdse.jujo.training;
 
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-@Getter
+@Getter @NoArgsConstructor
 public class UnencodedSkipGram {
 
     public static UnencodedSkipGram empty() {

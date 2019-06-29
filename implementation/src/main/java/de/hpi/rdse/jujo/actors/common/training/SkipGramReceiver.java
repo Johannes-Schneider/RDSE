@@ -2,6 +2,7 @@ package de.hpi.rdse.jujo.actors.common.training;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.RootActorPath;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WordEndpoint;
 import de.hpi.rdse.jujo.training.EncodedSkipGram;
@@ -43,7 +44,7 @@ public class SkipGramReceiver extends AbstractReapedActor {
         private static final long serialVersionUID = -3803848151388038254L;
     }
 
-    private final Map<ActorRef, Map<String, List<String>>> unencodedSkipGramsByActor = new HashMap<>();
+    private final Map<RootActorPath, Map<String, List<String>>> unencodedSkipGramsByActor = new HashMap<>();
 
     private SkipGramReceiver() {
     }
@@ -65,6 +66,9 @@ public class SkipGramReceiver extends AbstractReapedActor {
             this.self().tell(message, this.sender());
             return;
         }
+        if (!Vocabulary.getInstance().containsLocally(message.getSkipGram().getExpectedOutput())) {
+            return;
+        }
         RealVector inputGradient = Word2VecModel.getInstance().train(message.getSkipGram());
         long oneHotIndex = message.getSkipGram().getEncodedInput().getOneHotIndex();
         this.sender().tell(new WordEndpoint.UpdateWeight(oneHotIndex, inputGradient), this.self());
@@ -79,6 +83,9 @@ public class SkipGramReceiver extends AbstractReapedActor {
         }
         this.log().debug(String.format("Processing %d unencoded skip-grams", message.getSkipGrams().size()));
         for (UnencodedSkipGram unencodedSkipGram : message.getSkipGrams()) {
+            if (!Vocabulary.getInstance().containsLocally(unencodedSkipGram.getExpectedOutput())) {
+                continue;
+            }
             for (EncodedSkipGram encodedSkipGram : unencodedSkipGram.extractEncodedSkipGrams()) {
                 this.self().tell(new ProcessEncodedSkipGram(encodedSkipGram), WordEndpointResolver.getInstance().localWordEndpoint());
             }
@@ -89,7 +96,7 @@ public class SkipGramReceiver extends AbstractReapedActor {
 
     private void addToUnencodedSkipGramsToResolve(UnencodedSkipGram skipGram) {
         for (String inputWord : skipGram.getInputs()) {
-            ActorRef receiver = WordEndpointResolver.getInstance().resolve(inputWord);
+            RootActorPath receiver = WordEndpointResolver.getInstance().resolve(inputWord).path().root();
             this.unencodedSkipGramsByActor.putIfAbsent(receiver, new HashMap<>());
             this.unencodedSkipGramsByActor.get(receiver).putIfAbsent(skipGram.getExpectedOutput(), new ArrayList<>());
             this.unencodedSkipGramsByActor.get(receiver).get(skipGram.getExpectedOutput()).add(inputWord);
@@ -97,14 +104,14 @@ public class SkipGramReceiver extends AbstractReapedActor {
     }
 
     private void resolveUnencodedSkipGrams() {
-        for (ActorRef resolver : this.unencodedSkipGramsByActor.keySet()) {
+        for (RootActorPath remote : this.unencodedSkipGramsByActor.keySet()) {
             WordEndpoint.EncodeSkipGrams message = new WordEndpoint.EncodeSkipGrams();
-            for (String expectedOutput : this.unencodedSkipGramsByActor.get(resolver).keySet()) {
+            for (String expectedOutput : this.unencodedSkipGramsByActor.get(remote).keySet()) {
                 UnencodedSkipGram unencodedSkipGram = new UnencodedSkipGram(expectedOutput);
-                unencodedSkipGram.getInputs().addAll(this.unencodedSkipGramsByActor.get(resolver).get(expectedOutput));
+                unencodedSkipGram.getInputs().addAll(this.unencodedSkipGramsByActor.get(remote).get(expectedOutput));
                 message.getUnencodedSkipGrams().add(unencodedSkipGram);
             }
-            resolver.tell(message, this.self());
+            WordEndpointResolver.getInstance().wordEndpointOf(remote).tell(message, this.self());
         }
         this.unencodedSkipGramsByActor.clear();
     }

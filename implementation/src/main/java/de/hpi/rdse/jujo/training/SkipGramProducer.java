@@ -1,6 +1,6 @@
 package de.hpi.rdse.jujo.training;
 
-import akka.actor.ActorRef;
+import akka.actor.RootActorPath;
 import de.hpi.rdse.jujo.fileHandling.FileWordIterator;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
@@ -13,11 +13,11 @@ import java.util.List;
 
 public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
 
-    private final ActorRef skipGramReceiver;
+    private final RootActorPath skipGramReceiver;
     private final FileWordIterator fileIterator;
     private final List<String> words = new ArrayList<>();
 
-    public SkipGramProducer(ActorRef skipGramReceiver, String localCorpusFilePath) throws FileNotFoundException {
+    public SkipGramProducer(RootActorPath skipGramReceiver, String localCorpusFilePath) throws FileNotFoundException {
         this.skipGramReceiver = skipGramReceiver;
         this.fileIterator = new FileWordIterator(localCorpusFilePath);
     }
@@ -36,7 +36,7 @@ public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
 
         List<UnencodedSkipGram> skipGrams = new ArrayList<>();
         for (int i = 0; i < wordsForSkipGramProduction.size(); ++i) {
-            if (WordEndpointResolver.getInstance().resolve(this.words.get(i)) != this.skipGramReceiver) {
+            if (WordEndpointResolver.getInstance().resolve(this.words.get(i)).path().root() != this.skipGramReceiver) {
                 continue;
             }
 

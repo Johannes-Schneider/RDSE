@@ -1,6 +1,7 @@
 package de.hpi.rdse.jujo.wordManagement;
 
 import akka.actor.ActorRef;
+import akka.actor.RootActorPath;
 import com.google.common.hash.Hashing;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -57,6 +58,10 @@ public class WordEndpointResolver {
 
     public ActorRef localWordEndpoint() {
         return this.localWordEndpoint;
+    }
+
+    public ActorRef wordEndpointOf(RootActorPath remote) {
+        return this.all().stream().filter(e -> e.path().root() == remote).findFirst().orElseThrow(RuntimeException::new);
     }
 
 }

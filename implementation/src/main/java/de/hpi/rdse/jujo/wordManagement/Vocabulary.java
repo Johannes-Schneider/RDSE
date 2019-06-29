@@ -1,6 +1,7 @@
 package de.hpi.rdse.jujo.wordManagement;
 
 import akka.actor.ActorRef;
+import akka.actor.RootActorPath;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
@@ -15,6 +16,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -71,14 +73,14 @@ public class Vocabulary implements Iterable<String> {
     }
 
     private final String[] words;
-    private final Map<ActorRef, VocabularyPartition> vocabularyPartitions = new HashMap<>();
+    private final Map<RootActorPath, VocabularyPartition> vocabularyPartitions = new HashMap<>();
     private final AliasSampler aliasSampler;
 
     private Vocabulary(TreeMap<String, Long> subsampledWordCounts) {
         this.words = subsampledWordCounts.keySet().toArray(new String[0]);
         this.aliasSampler = new AliasSampler(subsampledWordCounts.values());
         VocabularyPartition localPartition = new VocabularyPartition(this.length(), new LocalWordLookupStrategy(this.words));
-        this.vocabularyPartitions.put(WordEndpointResolver.getInstance().localWordEndpoint(), localPartition);
+        this.vocabularyPartitions.put(WordEndpointResolver.getInstance().localWordEndpoint().path().root(), localPartition);
     }
 
     public int length() {
@@ -90,8 +92,8 @@ public class Vocabulary implements Iterable<String> {
         return Arrays.stream(this.words).iterator();
     }
 
-    public void addRemoteVocabulary(ActorRef remoteWordEndpoint, VocabularyPartition vocabulary) {
-        this.vocabularyPartitions.putIfAbsent(remoteWordEndpoint, vocabulary);
+    public void addRemoteVocabulary(RootActorPath remote, VocabularyPartition vocabulary) {
+        this.vocabularyPartitions.putIfAbsent(remote, vocabulary);
 
         if (this.isComplete()) {
             this.initializePartitions();
@@ -102,8 +104,9 @@ public class Vocabulary implements Iterable<String> {
         long firstWordIndex = 0L;
         try {
             for (ActorRef responsibleWordEndpoint : WordEndpointResolver.getInstance().all()) {
-                this.vocabularyPartitions.get(responsibleWordEndpoint).initialize(firstWordIndex);
-                firstWordIndex += this.vocabularyPartitions.get(responsibleWordEndpoint).length();
+                RootActorPath remote = responsibleWordEndpoint.path().root();
+                this.vocabularyPartitions.get(remote).initialize(firstWordIndex);
+                firstWordIndex += this.vocabularyPartitions.get(remote).length();
             }
         } catch (OperationsException e) {
             Log.error("Unable to initialize VocabularyPartition", e);
@@ -116,7 +119,11 @@ public class Vocabulary implements Iterable<String> {
             return false;
         }
 
-        return this.vocabularyPartitions.keySet().containsAll(WordEndpointResolver.getInstance().all());
+        List<RootActorPath> allRemotes = WordEndpointResolver.getInstance().all()
+                                                             .stream()
+                                                             .map(actorRef -> actorRef.path().root())
+                                                             .collect(Collectors.toCollection(LinkedList::new));
+        return this.vocabularyPartitions.keySet().containsAll(allRemotes);
     }
 
     public boolean contains(String word) {
@@ -124,10 +131,10 @@ public class Vocabulary implements Iterable<String> {
     }
 
     public boolean containsLocally(String word) {
-        return this.getResponsibleWordEndpoint(word) == WordEndpointResolver.getInstance().localWordEndpoint();
+        return Arrays.binarySearch(this.words, word) >= 0;
     }
 
-    private ActorRef getResponsibleWordEndpoint(String word) {
+    private RootActorPath getResponsibleWordEndpoint(String word) {
         ActorRef responsibleWordEndpoint = WordEndpointResolver.getInstance().resolve(word);
 
         if (responsibleWordEndpoint == ActorRef.noSender()) {
@@ -135,7 +142,7 @@ public class Vocabulary implements Iterable<String> {
             responsibleWordEndpoint = WordEndpointResolver.getInstance().localWordEndpoint();
         }
 
-        return responsibleWordEndpoint;
+        return responsibleWordEndpoint.path().root();
     }
 
     public long oneHotIndex(String word) {
@@ -148,7 +155,7 @@ public class Vocabulary implements Iterable<String> {
     }
 
     public long localFirstWordIndex() {
-        return this.vocabularyPartitions.get(WordEndpointResolver.getInstance().localWordEndpoint()).firstWordIndex();
+        return this.vocabularyPartitions.get(WordEndpointResolver.getInstance().localWordEndpoint().path().root()).firstWordIndex();
     }
 
     public int[] drawLocalSamples(int numberOfSamples, long... excludedOneHotIndices) {
@@ -162,6 +169,6 @@ public class Vocabulary implements Iterable<String> {
 
             uniqueLocalIndices.add(localIndex);
         }
-        return ArrayUtils.toPrimitive((Integer[]) uniqueLocalIndices.toArray());
+        return ArrayUtils.toPrimitive(uniqueLocalIndices.toArray(new Integer[0]));
     }
 }

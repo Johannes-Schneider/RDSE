@@ -46,7 +46,7 @@ public class Word2VecTrainingStep {
         this.trainNegativeSamples();
 
         this.model.getOutputWeights()[this.outputLocalIndex] =
-                this.outputWordOutputWeights.subtract(this.output.getWeights().mapMultiply(this.model.getLearningRate()));
+                this.outputWordOutputWeights.subtract(this.outputGradient.mapMultiply(this.model.getLearningRate()));
         return this.inputGradient;
     }
 

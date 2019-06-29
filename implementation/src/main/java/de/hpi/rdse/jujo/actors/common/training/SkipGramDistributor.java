@@ -2,6 +2,7 @@ package de.hpi.rdse.jujo.actors.common.training;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.RootActorPath;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.training.EncodedSkipGram;
 import de.hpi.rdse.jujo.training.SkipGramProducer;
@@ -26,12 +27,12 @@ public class SkipGramDistributor extends AbstractReapedActor {
         private static final long serialVersionUID = -4382367275556082887L;
     }
 
-    private final Map<ActorRef, SkipGramProducer> skipGramProducers = new HashMap<>();
+    private final Map<RootActorPath, SkipGramProducer> skipGramProducers = new HashMap<>();
 
     private SkipGramDistributor(String localCorpusPartitionPath) throws FileNotFoundException {
         for (ActorRef skipGramReceiver : WordEndpointResolver.getInstance().all()) {
-            this.skipGramProducers.put(skipGramReceiver, new SkipGramProducer(skipGramReceiver,
-                    localCorpusPartitionPath));
+            RootActorPath remote = skipGramReceiver.path().root();
+            this.skipGramProducers.put(remote, new SkipGramProducer(remote, localCorpusPartitionPath));
         }
         this.startSkipGramDistribution();
     }
@@ -45,17 +46,18 @@ public class SkipGramDistributor extends AbstractReapedActor {
     }
 
     private void startSkipGramDistribution() {
-        for (ActorRef skipGramReceiver : this.skipGramProducers.keySet()) {
-            this.createAndDistributeSkipGrams(skipGramReceiver);
+        for (RootActorPath remote : this.skipGramProducers.keySet()) {
+            this.createAndDistributeSkipGrams(WordEndpointResolver.getInstance().wordEndpointOf(remote));
         }
     }
 
     private void createAndDistributeSkipGrams(ActorRef skipGramReceiver) {
         if (this.skipGramProducers.values().stream().noneMatch(SkipGramProducer::hasNext)) {
+            this.log().info("All skip-grams have been distributed.");
             this.context().parent().tell(new TrainingCoordinator.SkipGramsDistributed(), this.self());
             return;
         }
-        this.distributeSkipGrams(skipGramReceiver, this.skipGramProducers.get(skipGramReceiver).next());
+        this.distributeSkipGrams(skipGramReceiver, this.skipGramProducers.get(skipGramReceiver.path().root()).next());
     }
 
     private void distributeSkipGrams(ActorRef skipGramReceiver, List<UnencodedSkipGram> payload) {

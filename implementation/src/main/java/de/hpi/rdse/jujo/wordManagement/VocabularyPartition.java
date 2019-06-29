@@ -14,7 +14,7 @@ public class VocabularyPartition {
     }
 
     public void initialize(long firstWordIndex) throws OperationsException {
-        if (this.firstWordIndex() < 0L) {
+        if (this.firstWordIndex() >= 0L) {
             throw new OperationsException("This VocabularyPartition has already been initialized");
         }
 

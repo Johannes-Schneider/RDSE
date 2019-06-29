@@ -1,9 +1,7 @@
 package de.hpi.rdse.jujo.actors.common;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.RootActorPath;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
@@ -24,7 +22,6 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
 
 public class VocabularyReceiver extends AbstractReapedActor {
 
@@ -40,7 +37,7 @@ public class VocabularyReceiver extends AbstractReapedActor {
     }
 
     private final Materializer materializer;
-    private final Map<ActorRef, BloomFilter<String>> remoteBloomFilters = new HashMap<>();
+    private final Map<RootActorPath, InputStream> remoteStreams = new HashMap<>();
 
     private VocabularyReceiver() {
         this.materializer = ActorMaterializer.create(this.context());
@@ -54,32 +51,33 @@ public class VocabularyReceiver extends AbstractReapedActor {
                 .build();
     }
 
-    private void handle(ProcessVocabulary message) throws IOException {
+    private void handle(ProcessVocabulary message) {
         this.log().info(String.format("Received remote vocabulary source from %s", this.sender()));
-
+        RootActorPath remote = this.sender().path().root();
         InputStream inputStream = message.getSource().getSource()
-                                         .watchTermination((notUsed, stage) -> this.handleTermination(this.sender(), message.getVocabularyLength(), notUsed, stage))
+                                         .watchTermination((notUsed, stage) -> stage.thenRun(() ->
+                                                 this.handleTermination(remote, message.getVocabularyLength())))
                                          .runWith(StreamConverters.asInputStream(), this.materializer);
 
-        this.remoteBloomFilters.put(
-                this.sender(),
-                BloomFilter.readFrom(inputStream, Funnels.stringFunnel(Vocabulary.WORD_ENCODING)));
+        this.remoteStreams.put(remote, inputStream);
+
     }
 
-    private NotUsed handleTermination(ActorRef sender, long vocabularyLength, NotUsed notUsed, CompletionStage<Done> stage) {
-        stage.thenApply(x -> {
-            this.log().info(String.format("Done receiving vocabulary from %s", sender));
+    private void handleTermination(RootActorPath remote, long vocabularyLength) {
+        this.log().info(String.format("Done receiving vocabulary from %s", remote));
+        try {
+            InputStream stream = this.remoteStreams.get(remote);
+            BloomFilter<String> bloomFilter = BloomFilter.readFrom(stream, Funnels.stringFunnel(Vocabulary.WORD_ENCODING));
             VocabularyPartition partition = new VocabularyPartition(vocabularyLength,
-                                                                    new BloomFilterWordLookupStrategy(this.remoteBloomFilters.get(sender)));
-            Vocabulary.getInstance().addRemoteVocabulary(sender, partition);
+                    new BloomFilterWordLookupStrategy(bloomFilter));
+            Vocabulary.getInstance().addRemoteVocabulary(remote, partition);
 
             if (Vocabulary.getInstance().isComplete()) {
                 this.log().info("Vocabulary completed. Informing WordEndpoint.");
                 this.context().parent().tell(new WordEndpoint.VocabularyCompleted(), this.self());
             }
-
-            return x;
-        });
-        return notUsed;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
