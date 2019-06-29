@@ -13,16 +13,16 @@ public class AliasSampler {
     private final Queue<Integer> T_L;
     private final Queue<Integer> T_H;
     private final Random randomGenerator = new Random();
-    private final long totalNumberOfWords;
+    private final long summedWordIdentity;
 
     public AliasSampler(Collection<Long> localWordCounts) {
         this.wordCounts = localWordCounts.toArray(new Long[0]);
-        this.totalNumberOfWords = localWordCounts.stream().mapToLong(l -> l).sum();
         this.s = this.createS();
         this.a = this.createA();
         this.T_L = this.createT_L();
         this.T_H = this.createT_H();
         this.buildAlias();
+        this.summedWordIdentity = (this.wordCounts.length * (this.wordCounts.length + 1)) / 2;
     }
 
     private float[] createS() {
@@ -36,7 +36,10 @@ public class AliasSampler {
     }
 
     private float getWordProbability(int i) {
-        return (float) this.wordCounts[i] / this.totalNumberOfWords;
+        if (i > this.wordCounts.length - 1) {
+            return 0.0f;
+        }
+        return (float) i / this.summedWordIdentity;
     }
 
     private int[] createA() {
@@ -51,8 +54,8 @@ public class AliasSampler {
 
     private Queue<Integer> createT_L() {
         Queue<Integer> T_L = new LinkedList<>();
-        for (int i=0; i < this.wordCounts.length; i++) {
-            if (getWordProbability(i) < (1.0 / this.wordCounts.length)) {
+        for (int i = 0; i < this.wordCounts.length; i++) {
+            if (this.getWordProbability(i) < (1.0 / this.wordCounts.length)) {
                 T_L.add(i);
             }
         }
@@ -61,8 +64,8 @@ public class AliasSampler {
 
     private Queue<Integer> createT_H() {
         Queue<Integer> T_H = new LinkedList<>();
-        for (int i=0; i < this.wordCounts.length; i++) {
-            if (getWordProbability(i) > (1.0 / this.wordCounts.length)) {
+        for (int i = 0; i < this.wordCounts.length; i++) {
+            if (this.getWordProbability(i) > (1.0 / this.wordCounts.length)) {
                 T_H.add(i);
             }
         }
@@ -70,7 +73,7 @@ public class AliasSampler {
     }
 
     private void buildAlias() {
-        while( this.T_L.size() > 0) {
+        while (this.T_L.size() > 0) {
             int j = this.T_L.peek();
             int k = this.T_H.poll();
             this.s[k] = this.s[k] - 1 + this.s[j];
@@ -79,7 +82,7 @@ public class AliasSampler {
                 this.T_L.add(k);
             }
             if (this.s[k] > 1.0) {
-               this.T_H.add(k);
+                this.T_H.add(k);
             }
             this.T_L.poll();
         }
