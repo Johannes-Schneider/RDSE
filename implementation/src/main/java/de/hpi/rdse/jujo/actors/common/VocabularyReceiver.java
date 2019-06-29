@@ -74,6 +74,7 @@ public class VocabularyReceiver extends AbstractReapedActor {
             Vocabulary.getInstance().addRemoteVocabulary(sender, partition);
 
             if (Vocabulary.getInstance().isComplete()) {
+                this.log().info("Vocabulary completed. Informing WordEndpoint.");
                 this.context().parent().tell(new WordEndpoint.VocabularyCompleted(), this.self());
             }
 
