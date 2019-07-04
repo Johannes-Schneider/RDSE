@@ -61,7 +61,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
                 .match(WordEndpoint.VocabularyCreated.class, this::handle)
                 .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
                 .match(SkipGramReceiver.ProcessUnencodedSkipGrams.class, this::handle)
-                .match(SkipGramReceiver.SkipGramChunkTransferred.class, this::handle)
+                .match(TrainingCoordinator.SkipGramChunkTransferred.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
     }
@@ -109,7 +109,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
         this.trainingCoordinator.tell(message, this.sender());
     }
 
-    private void handle(SkipGramReceiver.SkipGramChunkTransferred message) {
+    private void handle(TrainingCoordinator.SkipGramChunkTransferred message) {
         this.trainingCoordinator.tell(message, this.sender());
     }
 }

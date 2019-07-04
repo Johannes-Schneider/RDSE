@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import de.hpi.rdse.jujo.actors.common.training.SkipGramReceiver;
+import de.hpi.rdse.jujo.actors.common.training.TrainingCoordinator;
 import de.hpi.rdse.jujo.training.EncodedSkipGram;
 import de.hpi.rdse.jujo.training.UnencodedSkipGram;
 import de.hpi.rdse.jujo.training.Word2VecModel;
@@ -79,7 +80,7 @@ public class WordEndpoint extends AbstractReapedActor {
                    .match(VocabularyCompleted.class, this::handle)
                    .match(SkipGramReceiver.ProcessUnencodedSkipGrams.class, this::handle)
                    .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
-                   .match(SkipGramReceiver.SkipGramChunkTransferred.class, this::handle)
+                   .match(TrainingCoordinator.SkipGramChunkTransferred.class, this::handle)
                    .match(EncodeSkipGrams.class, this::handle)
                    .match(UpdateWeight.class, this::handle)
                    .matchAny(this::handleAny)
@@ -156,7 +157,12 @@ public class WordEndpoint extends AbstractReapedActor {
         Word2VecModel.getInstance().updateWeight(message.getOneHotIndex(), message.getGradient());
     }
 
-    private void handle(SkipGramReceiver.SkipGramChunkTransferred message) {
-        this.context().parent().tell(message, this.sender());
+    private void handle(TrainingCoordinator.SkipGramChunkTransferred message) {
+        if (this.sender() == this.self()) {
+            this.context().parent().tell(message, this.sender());
+            return;
+        }
+
+        this.sender().tell(message, this.sender());
     }
 }

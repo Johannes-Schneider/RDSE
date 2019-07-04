@@ -29,6 +29,12 @@ public class TrainingCoordinator extends AbstractReapedActor {
         private static final long serialVersionUID = 4150057273673434932L;
     }
 
+    @NoArgsConstructor @AllArgsConstructor @Getter
+    public static class SkipGramChunkTransferred implements Serializable {
+        private static final long serialVersionUID = -3803848151388038254L;
+        private ActorRef producer;
+    }
+
     private ActorRef skipGramDistributor;
     private ActorRef skipGramReceiver;
 
@@ -42,8 +48,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
                    .match(StartTraining.class, this::handle)
                    .match(SkipGramsDistributed.class, this::handle)
                    .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
-                   .match(SkipGramReceiver.ProcessUnencodedSkipGrams.class, this::handle)
-                   .match(SkipGramReceiver.SkipGramChunkTransferred.class, this::handle)
+                   .match(SkipGramChunkTransferred.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -76,11 +81,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
         this.skipGramReceiver.tell(message, this.sender());
     }
 
-    private void handle(SkipGramReceiver.ProcessUnencodedSkipGrams message) {
-        this.skipGramReceiver.tell(message, this.sender());
-    }
-
-    private void handle(SkipGramReceiver.SkipGramChunkTransferred message) {
-        this.skipGramReceiver.tell(message, this.sender());
+    private void handle(SkipGramChunkTransferred message) {
+        message.getProducer().tell(new SkipGramDistributor.RequestNextSkipGramChunk(), this.self());
     }
 }
