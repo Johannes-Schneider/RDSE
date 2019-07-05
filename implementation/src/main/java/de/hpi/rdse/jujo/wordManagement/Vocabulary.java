@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 public class Vocabulary implements Iterable<String> {
@@ -32,34 +31,26 @@ public class Vocabulary implements Iterable<String> {
     private static final int MIN_NUMBER_OF_HASHING_BITS = 2048;
     private static final HashFunction HASH_FUNCTION = Hashing.goodFastHash(MIN_NUMBER_OF_HASHING_BITS);
 
-    private static final ReentrantLock instanceLock = new ReentrantLock();
     private static Vocabulary instance;
 
     public static void createInstance(TreeMap<String, Long> subsampledWordCounts) {
-        Vocabulary.instanceLock.lock();
-        try {
-            if (Vocabulary.instance != null) {
-                Log.error("Tried to create a second instance of Vocabulary!");
-                return;
-            }
-            Vocabulary.instance = new Vocabulary(subsampledWordCounts);
+        if (Vocabulary.instance != null) {
+            Log.error("Tried to create a second instance of Vocabulary!");
+            return;
         }
-        finally {
-            Vocabulary.instanceLock.unlock();
-        }
+        Vocabulary.instance = new Vocabulary(subsampledWordCounts);
     }
 
     public static Vocabulary getInstance() {
-        Vocabulary.instanceLock.lock();
-        try {
-            if (Vocabulary.instance == null) {
-                Log.error("Called getInstance of Vocabulary without calling createInstance first!");
+        while (Vocabulary.instance == null) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-            return Vocabulary.instance;
         }
-        finally {
-            Vocabulary.instanceLock.unlock();
-        }
+
+        return Vocabulary.instance;
     }
 
     public static byte[] encode(String phrase) {
