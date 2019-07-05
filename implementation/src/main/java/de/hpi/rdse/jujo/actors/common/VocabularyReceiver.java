@@ -7,7 +7,7 @@ import akka.actor.RootActorPath;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
-import akka.stream.javadsl.StreamConverters;
+import akka.stream.javadsl.FileIO;
 import akka.util.ByteString;
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
@@ -18,16 +18,16 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import scala.concurrent.duration.FiniteDuration;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
 
 public class VocabularyReceiver extends AbstractReapedActor {
 
@@ -43,7 +43,7 @@ public class VocabularyReceiver extends AbstractReapedActor {
     }
 
     private final Materializer materializer;
-    private final Map<RootActorPath, InputStream> remoteStreams = new HashMap<>();
+    private final Map<RootActorPath, File> remoteFiles = new HashMap<>();
 
     private VocabularyReceiver() {
         this.materializer = ActorMaterializer.create(this.context());
@@ -60,15 +60,16 @@ public class VocabularyReceiver extends AbstractReapedActor {
     private void handle(ProcessVocabulary message) {
         this.log().info(String.format("Received remote vocabulary source from %s", this.sender()));
         RootActorPath remote = this.sender().path().root();
-        InputStream inputStream = message.getSource().getSource()
-                                         .watchTermination((notUsed, stage) -> this.handleTermination(notUsed,
-                                                                                                      stage,
-                                                                                                      remote,
-                                                                                                      message.getVocabularyLength()))
-                                         .runWith(StreamConverters.asInputStream(Duration.ofSeconds(3)),
-                                                         this.materializer);
-        this.remoteStreams.put(remote, inputStream);
+        File remoteFile = new File(UUID.randomUUID().toString());
+        this.remoteFiles.put(remote, remoteFile);
 
+        message.getSource().getSource()
+               .watchTermination((notUsed, stage) -> this.handleTermination(notUsed,
+                                                                            stage,
+                                                                            remote,
+                                                                            message.getVocabularyLength()))
+               .runWith(FileIO.toPath(remoteFile.toPath()),
+                        this.materializer);
     }
 
     private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage, RootActorPath remote,
@@ -81,8 +82,9 @@ public class VocabularyReceiver extends AbstractReapedActor {
 
             this.log().info(String.format("Done receiving vocabulary from %s", remote));
             try {
-                InputStream stream = this.remoteStreams.get(remote);
+                InputStream stream = new FileInputStream(this.remoteFiles.get(remote));
                 BloomFilter<String> bloomFilter = BloomFilter.readFrom(stream, Funnels.stringFunnel(Vocabulary.WORD_ENCODING));
+                this.remoteFiles.get(remote).delete();
                 VocabularyPartition partition = new VocabularyPartition(vocabularyLength,
                                                                         new BloomFilterWordLookupStrategy(bloomFilter));
                 Vocabulary.getInstance().addRemoteVocabulary(remote, partition);
