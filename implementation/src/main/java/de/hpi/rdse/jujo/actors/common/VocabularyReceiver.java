@@ -16,12 +16,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import scala.concurrent.duration.FiniteDuration;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class VocabularyReceiver extends AbstractReapedActor {
 
@@ -57,8 +59,8 @@ public class VocabularyReceiver extends AbstractReapedActor {
         InputStream inputStream = message.getSource().getSource()
                                          .watchTermination((notUsed, stage) -> stage.thenRun(() ->
                                                  this.handleTermination(remote, message.getVocabularyLength())))
-                                         .runWith(StreamConverters.asInputStream(), this.materializer);
-
+                                         .runWith(StreamConverters.asInputStream(new FiniteDuration(3, TimeUnit.SECONDS)),
+                                                 this.materializer);
         this.remoteStreams.put(remote, inputStream);
 
     }
