@@ -4,6 +4,7 @@ import de.hpi.rdse.jujo.fileHandling.FilePartitionIterator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -14,18 +15,18 @@ public class AliasSampler {
     private static final Logger Log = LogManager.getLogger(FilePartitionIterator.class);
 
     private Long[] wordCounts;
-    private final float[] s;
+    private final double[] s;
     private final int[] a;
     private final Queue<Integer> T_L;
     private final Queue<Integer> T_H;
     private final Random randomGenerator = new Random();
-    private final long summedWordIdentity;
+    private final long entireWordCount;
 
     public AliasSampler(Collection<Long> localWordCounts) {
         Log.info("Start creating AliasSampler");
 
         this.wordCounts = localWordCounts.toArray(new Long[0]);
-        this.summedWordIdentity = (this.wordCounts.length * (this.wordCounts.length + 1)) / 2;
+        this.entireWordCount = Arrays.stream(this.wordCounts).mapToLong(Long::longValue).sum();
         this.s = this.createS();
         this.a = this.createA();
         this.T_L = this.createT_L();
@@ -35,23 +36,25 @@ public class AliasSampler {
         Log.info("Done creating AliasSampler");
     }
 
-    private float[] createS() {
-        float[] s = new float[wordCounts.length];
+    // A=2, B=1, C=0.6, D=0.4
+    private double[] createS() {
+        double[] s = new double[this.wordCounts.length];
 
         for (int i = 0; i < this.wordCounts.length; i++) {
-            s[i] = this.getWordProbability(i) * wordCounts.length;
+            s[i] = this.getWordProbability(i) * this.wordCounts.length;
         }
 
         return s;
     }
 
-    private float getWordProbability(int i) {
+    private double getWordProbability(int i) {
         if (i > this.wordCounts.length - 1) {
             return 0.0f;
         }
-        return (float) i / this.summedWordIdentity;
+        return (double) this.wordCounts[i] / this.entireWordCount;
     }
 
+    // A=0, B=1, C=2, D=3
     private int[] createA() {
         int[] a = new int[this.wordCounts.length];
 
@@ -84,22 +87,26 @@ public class AliasSampler {
 
     private void buildAlias() {
         while (this.T_L.size() > 0) {
-            int j = this.T_L.peek();
+            int j = this.T_L.poll();
             int k = this.T_H.poll();
             this.s[k] = this.s[k] - 1 + this.s[j];
             this.a[j] = k;
             if (this.s[k] < 1.0) {
                 this.T_L.add(k);
-            }
-            if (this.s[k] > 1.0) {
+            } else if (this.s[k] > 1.0) {
                 this.T_H.add(k);
             }
-            this.T_L.poll();
+            if (T_L.size() > 0 && T_H.size() < 1) {
+                this.T_L.forEach(a -> s[a] = 1.0);
+                Log.warn(String.format("Corrected rounding errors of %d elements during AliasSampling",
+                        this.T_L.size()));
+                break;
+            }
         }
     }
 
     public int drawLocalWordIndex() {
-        float u = this.randomGenerator.nextFloat() * this.s.length; // u in [0, |W|)
+        double u = this.randomGenerator.nextDouble() * this.s.length; // u in [0, |W|)
         int uFloor = (int) Math.floor(u);
 
         if (this.s[uFloor] > u - uFloor) {
