@@ -86,10 +86,11 @@ public class SkipGramDistributor extends AbstractReapedActor {
     }
 
     private Map<ActorRef, List<UnencodedSkipGram>> groupByInputResolver(List<UnencodedSkipGram> unencodedSkipGrams) {
+        WordEndpointResolver wordEndpointResolver = WordEndpointResolver.getInstance();
         Map<ActorRef, Map<String, List<String>>> skipGramsToResolve = new HashMap<>();
         for (UnencodedSkipGram skipGram : unencodedSkipGrams) {
             for (String inputWord : skipGram.getInputs()) {
-                ActorRef resolver = WordEndpointResolver.getInstance().resolve(inputWord);
+                ActorRef resolver = wordEndpointResolver.resolve(inputWord);
                 skipGramsToResolve.putIfAbsent(resolver, new HashMap<>());
                 skipGramsToResolve.get(resolver).putIfAbsent(skipGram.getExpectedOutput(), new ArrayList<>());
                 skipGramsToResolve.get(resolver).get(skipGram.getExpectedOutput()).add(inputWord);
