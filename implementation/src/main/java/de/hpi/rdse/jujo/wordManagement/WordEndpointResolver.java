@@ -8,26 +8,40 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class WordEndpointResolver {
 
     private static final Logger Log = LogManager.getLogger(WordEndpointResolver.class);
 
+    private static final ReentrantLock instanceLock = new ReentrantLock();
     private static WordEndpointResolver instance;
 
     public static void createInstance(ActorRef localWordEndpoint) {
-        if (WordEndpointResolver.instance != null) {
-            Log.error("Tried to create a second instance of WordEndpointResolver!");
-            return;
+        WordEndpointResolver.instanceLock.lock();
+        try {
+            if (WordEndpointResolver.instance != null) {
+                Log.error("Tried to create a second instance of WordEndpointResolver!");
+                return;
+            }
+            WordEndpointResolver.instance = new WordEndpointResolver(localWordEndpoint);
         }
-        WordEndpointResolver.instance = new WordEndpointResolver(localWordEndpoint);
+        finally {
+            WordEndpointResolver.instanceLock.unlock();
+        }
     }
 
     public static WordEndpointResolver getInstance() {
-        if (WordEndpointResolver.instance == null) {
-            Log.error("Called getInstance of WordEndpointResolver without calling createInstance first!");
+        WordEndpointResolver.instanceLock.lock();
+        try {
+            if (WordEndpointResolver.instance == null) {
+                Log.error("Called getInstance of WordEndpointResolver without calling createInstance first!");
+            }
+            return WordEndpointResolver.instance;
         }
-        return WordEndpointResolver.instance;
+        finally {
+            WordEndpointResolver.instanceLock.unlock();
+        }
     }
 
     private List<ActorRef> wordEndpoints = new ArrayList<>();

@@ -6,19 +6,27 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 
 import java.util.Random;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Getter
 public class Word2VecModel {
 
     private static Word2VecConfiguration modelConfiguration;
 
+    private static final ReentrantLock instanceLock = new ReentrantLock();
     private static Word2VecModel instance;
 
     public static Word2VecModel getInstance() {
-        if (Word2VecModel.instance == null) {
-            Word2VecModel.instance = new Word2VecModel();
+        Word2VecModel.instanceLock.lock();
+        try {
+            if (Word2VecModel.instance == null) {
+                Word2VecModel.instance = new Word2VecModel();
+            }
+            return Word2VecModel.instance;
         }
-        return Word2VecModel.instance;
+        finally {
+            Word2VecModel.instanceLock.unlock();
+        }
     }
 
     public static void setModelConfiguration(Word2VecConfiguration modelConfiguration) {
