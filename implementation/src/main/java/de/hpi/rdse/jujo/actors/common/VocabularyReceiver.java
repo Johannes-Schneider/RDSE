@@ -1,5 +1,7 @@
 package de.hpi.rdse.jujo.actors.common;
 
+import akka.Done;
+import akka.NotUsed;
 import akka.actor.Props;
 import akka.actor.RootActorPath;
 import akka.stream.ActorMaterializer;
@@ -23,6 +25,7 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 public class VocabularyReceiver extends AbstractReapedActor {
@@ -57,29 +60,41 @@ public class VocabularyReceiver extends AbstractReapedActor {
         this.log().info(String.format("Received remote vocabulary source from %s", this.sender()));
         RootActorPath remote = this.sender().path().root();
         InputStream inputStream = message.getSource().getSource()
-                                         .watchTermination((notUsed, stage) -> stage.thenRun(() ->
-                                                 this.handleTermination(remote, message.getVocabularyLength())))
+                                         .watchTermination((notUsed, stage) -> this.handleTermination(notUsed,
+                                                                                                      stage,
+                                                                                                      remote,
+                                                                                                      message.getVocabularyLength()))
                                          .runWith(StreamConverters.asInputStream(new FiniteDuration(3, TimeUnit.SECONDS)),
-                                                 this.materializer);
+                                                         this.materializer);
         this.remoteStreams.put(remote, inputStream);
 
     }
 
-    private void handleTermination(RootActorPath remote, long vocabularyLength) {
-        this.log().info(String.format("Done receiving vocabulary from %s", remote));
-        try {
-            InputStream stream = this.remoteStreams.get(remote);
-            BloomFilter<String> bloomFilter = BloomFilter.readFrom(stream, Funnels.stringFunnel(Vocabulary.WORD_ENCODING));
-            VocabularyPartition partition = new VocabularyPartition(vocabularyLength,
-                    new BloomFilterWordLookupStrategy(bloomFilter));
-            Vocabulary.getInstance().addRemoteVocabulary(remote, partition);
-
-            if (Vocabulary.getInstance().isComplete()) {
-                this.log().info("Vocabulary completed. Informing WordEndpoint.");
-                this.context().parent().tell(new WordEndpoint.VocabularyCompleted(), this.self());
+    private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage, RootActorPath remote,
+                                      long vocabularyLength) {
+        stage.whenComplete((done, throwable) -> {
+            if (throwable != null) {
+                this.log().error("Exception while receiving vocabulary", throwable);
+                return;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+            this.log().info(String.format("Done receiving vocabulary from %s", remote));
+            try {
+                InputStream stream = this.remoteStreams.get(remote);
+                BloomFilter<String> bloomFilter = BloomFilter.readFrom(stream, Funnels.stringFunnel(Vocabulary.WORD_ENCODING));
+                VocabularyPartition partition = new VocabularyPartition(vocabularyLength,
+                                                                        new BloomFilterWordLookupStrategy(bloomFilter));
+                Vocabulary.getInstance().addRemoteVocabulary(remote, partition);
+
+                if (Vocabulary.getInstance().isComplete()) {
+                    this.log().info("Vocabulary completed. Informing WordEndpoint.");
+                    this.context().parent().tell(new WordEndpoint.VocabularyCompleted(), this.self());
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        return notUsed;
     }
 }
