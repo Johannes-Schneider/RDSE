@@ -52,6 +52,7 @@ public class CorpusDistributor extends AbstractReapedActor {
         if (!this.corpusSources.containsKey(message.getSlave().path().root())) {
             this.corpusSources.put(message.getSlave().path().root(), createCorpusSource());
         }
+        this.log().info(String.format("Starting distributing corpus partition to %s", message.getSlave().path()));
         Source<ByteString, NotUsed> source = corpusSources.get(message.getSlave().path().root());
         CompletionStage<SourceRef<ByteString>> sourceRef = source.runWith(StreamRefs.sourceRef(), this.materializer);
 
