@@ -23,6 +23,7 @@ import scala.concurrent.duration.FiniteDuration;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -64,7 +65,7 @@ public class VocabularyReceiver extends AbstractReapedActor {
                                                                                                       stage,
                                                                                                       remote,
                                                                                                       message.getVocabularyLength()))
-                                         .runWith(StreamConverters.asInputStream(new FiniteDuration(3, TimeUnit.SECONDS)),
+                                         .runWith(StreamConverters.asInputStream(Duration.ofSeconds(3)),
                                                          this.materializer);
         this.remoteStreams.put(remote, inputStream);
 
