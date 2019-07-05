@@ -83,6 +83,10 @@ public class VocabularyReceiver extends AbstractReapedActor {
             try {
                 InputStream stream = new FileInputStream(this.remoteFiles.get(remote));
                 BloomFilter<String> bloomFilter = BloomFilter.readFrom(stream, Funnels.stringFunnel(Vocabulary.WORD_ENCODING));
+
+                stream.close();
+                this.remoteFiles.get(remote).delete();
+
                 VocabularyPartition partition = new VocabularyPartition(vocabularyLength,
                                                                         new BloomFilterWordLookupStrategy(bloomFilter));
                 Vocabulary.getInstance().addRemoteVocabulary(remote, partition);
