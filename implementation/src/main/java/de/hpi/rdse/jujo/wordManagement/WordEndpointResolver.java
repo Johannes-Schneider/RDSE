@@ -61,7 +61,7 @@ public class WordEndpointResolver {
     }
 
     public ActorRef wordEndpointOf(RootActorPath remote) {
-        return this.all().stream().filter(e -> e.path().root() == remote).findFirst().orElseThrow(RuntimeException::new);
+        return this.all().stream().filter(e -> e.path().root() == remote).findFirst().orElseThrow(() -> new RuntimeException(String.format("Unknown remote actor path: %s", remote)));
     }
 
 }
