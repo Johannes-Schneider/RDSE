@@ -1,11 +1,17 @@
 package de.hpi.rdse.jujo.training;
 
+import de.hpi.rdse.jujo.fileHandling.FilePartitionIterator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
 
 public class AliasSampler {
+
+    private static final Logger Log = LogManager.getLogger(FilePartitionIterator.class);
 
     private Long[] wordCounts;
     private final float[] s;
@@ -16,13 +22,17 @@ public class AliasSampler {
     private final long summedWordIdentity;
 
     public AliasSampler(Collection<Long> localWordCounts) {
+        Log.info("Start creating AliasSampler");
+
         this.wordCounts = localWordCounts.toArray(new Long[0]);
+        this.summedWordIdentity = (this.wordCounts.length * (this.wordCounts.length + 1)) / 2;
         this.s = this.createS();
         this.a = this.createA();
         this.T_L = this.createT_L();
         this.T_H = this.createT_H();
         this.buildAlias();
-        this.summedWordIdentity = (this.wordCounts.length * (this.wordCounts.length + 1)) / 2;
+
+        Log.info("Done creating AliasSampler");
     }
 
     private float[] createS() {

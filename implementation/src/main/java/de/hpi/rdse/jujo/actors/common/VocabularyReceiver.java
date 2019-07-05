@@ -68,8 +68,7 @@ public class VocabularyReceiver extends AbstractReapedActor {
                                                                             stage,
                                                                             remote,
                                                                             message.getVocabularyLength()))
-               .runWith(FileIO.toPath(remoteFile.toPath()),
-                        this.materializer);
+               .runWith(FileIO.toPath(remoteFile.toPath()), this.materializer);
     }
 
     private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage, RootActorPath remote,
@@ -84,7 +83,6 @@ public class VocabularyReceiver extends AbstractReapedActor {
             try {
                 InputStream stream = new FileInputStream(this.remoteFiles.get(remote));
                 BloomFilter<String> bloomFilter = BloomFilter.readFrom(stream, Funnels.stringFunnel(Vocabulary.WORD_ENCODING));
-                this.remoteFiles.get(remote).delete();
                 VocabularyPartition partition = new VocabularyPartition(vocabularyLength,
                                                                         new BloomFilterWordLookupStrategy(bloomFilter));
                 Vocabulary.getInstance().addRemoteVocabulary(remote, partition);
