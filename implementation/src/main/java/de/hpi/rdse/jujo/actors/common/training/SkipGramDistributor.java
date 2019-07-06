@@ -63,6 +63,11 @@ public class SkipGramDistributor extends AbstractReapedActor {
     }
 
     private void distributeSkipGrams(ActorRef skipGramReceiver, List<UnencodedSkipGram> payload) {
+        if (payload.size() < 1) {
+            this.log().info(String.format("No more skip-grams for %s", skipGramReceiver.path()));
+            return;
+        }
+
         this.log().debug(String.format("Distributing %d skip-grams to %s", payload.size(), skipGramReceiver.path()));
         List<UnencodedSkipGram> unencodedSkipGrams = new ArrayList<>();
         ActorRef lastReceiver = skipGramReceiver;
