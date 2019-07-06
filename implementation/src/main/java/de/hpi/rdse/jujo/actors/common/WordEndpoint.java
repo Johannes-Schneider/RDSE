@@ -158,11 +158,12 @@ public class WordEndpoint extends AbstractReapedActor {
     }
 
     private void handle(TrainingCoordinator.SkipGramChunkTransferred message) {
-        if (this.sender() == this.self()) {
+        this.log().info(String.format("Skip gram chunk transferred from %s to %s", message.getProducer(), message.getConsumer()));
+        if (this.self().path().root().equals(message.getConsumer().path().root())) {
             this.context().parent().tell(message, this.sender());
             return;
         }
 
-        this.sender().tell(message, this.sender());
+        message.getConsumer().tell(message, this.self());
     }
 }

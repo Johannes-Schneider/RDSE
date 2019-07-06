@@ -96,9 +96,10 @@ public class SkipGramDistributor extends AbstractReapedActor {
         ActorRef responsibleEndpoint =
                 WordEndpointResolver.getInstance().wordEndpointOf(skipGramReceiver.path().root());
         ActorRef lastEndpoint = WordEndpointResolver.getInstance().wordEndpointOf(lastReceiver.path().root());
-        lastEndpoint.tell(new TrainingCoordinator.SkipGramChunkTransferred(this.self()), responsibleEndpoint);
+        lastEndpoint.tell(new TrainingCoordinator.SkipGramChunkTransferred(this.self(), responsibleEndpoint),
+                this.self());
 
-        this.log().debug(String.format("Informed %s about the end of this skip gram chunk", lastEndpoint.path()));
+        this.log().info(String.format("Informed %s about the end of this skip gram chunk", lastEndpoint.path()));
     }
 
     private Map<ActorRef, List<UnencodedSkipGram>> groupByInputResolver(List<UnencodedSkipGram> unencodedSkipGrams) {

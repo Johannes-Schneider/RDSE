@@ -42,6 +42,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
     public static class SkipGramChunkTransferred implements Serializable {
         private static final long serialVersionUID = -3803848151388038254L;
         private ActorRef producer;
+        private ActorRef consumer;
     }
 
     private ActorRef skipGramDistributor;
