@@ -117,6 +117,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private void handle(SkipGramChunkTransferred message) {
+        this.log().info(String.format("Requesting next skip gram batch from %s", message.getProducer().path()));
         message.getProducer().tell(new SkipGramDistributor.RequestNextSkipGramChunk(), this.self());
     }
 

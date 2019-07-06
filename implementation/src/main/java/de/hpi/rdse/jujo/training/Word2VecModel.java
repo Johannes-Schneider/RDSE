@@ -61,8 +61,6 @@ public class Word2VecModel {
     public void lockInputWeight(int index) {
         this.inputWeightLocks.putIfAbsent(index, new ReentrantLock());
         this.inputWeightLocks.get(index).lock();
-
-        Log.debug(String.format("Locked input weight @ %d (# %d total locks)", index, this.inputWeightLocks.size()));
     }
 
     public void unlockInputWeight(int index) {
@@ -73,15 +71,11 @@ public class Word2VecModel {
 
         lock.unlock();
         this.inputWeightLocks.remove(index);
-
-        Log.debug(String.format("Unlocked input weight @ %d (# %d total locks)", index, this.inputWeightLocks.size()));
     }
 
     public void lockOutputWeight(int index) {
         this.outputWeightLocks.putIfAbsent(index, new ReentrantLock());
         this.outputWeightLocks.get(index).lock();
-
-        Log.debug(String.format("Locked output weight @ %d (# %d total locks)", index, this.outputWeightLocks.size()));
     }
 
     public void unlockOutputWeight(int index) {
@@ -92,8 +86,6 @@ public class Word2VecModel {
 
         lock.unlock();
         this.outputWeightLocks.remove(index);
-
-        Log.debug(String.format("Unlocked output weight @ %d (# %d total locks)", index, this.outputWeightLocks.size()));
     }
 
     public void setInputWeight(int index, RealVector newWeight) {

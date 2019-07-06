@@ -130,6 +130,7 @@ public class SkipGramDistributor extends AbstractReapedActor {
     }
 
     private void handle(RequestNextSkipGramChunk message) {
+        this.log().info(String.format("Next skip gram batch requested from %s", this.sender().path()));
         this.createAndDistributeSkipGrams(this.sender());
     }
 }
