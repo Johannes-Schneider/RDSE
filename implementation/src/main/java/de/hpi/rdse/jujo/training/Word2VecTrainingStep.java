@@ -1,6 +1,5 @@
 package de.hpi.rdse.jujo.training;
 
-import de.hpi.rdse.jujo.fileHandling.FilePartitioner;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import org.apache.commons.math3.analysis.function.Sigmoid;
 import org.apache.commons.math3.linear.RealVector;
@@ -29,7 +28,7 @@ public class Word2VecTrainingStep {
         this.input = skipGram.getEncodedInput();
         this.output = this.model.createEmbedding(skipGram.getExpectedOutput());
         this.outputLocalIndex = this.localIndex(this.output.getOneHotIndex());
-        this.outputWordOutputWeights = this.model.getOutputWeights()[this.outputLocalIndex];
+        this.outputWordOutputWeights = this.model.getOutputWeight(this.outputLocalIndex);
     }
 
     private int localIndex(long globalIndex) {
@@ -45,8 +44,8 @@ public class Word2VecTrainingStep {
 
         this.trainNegativeSamples();
 
-        this.model.getOutputWeights()[this.outputLocalIndex] =
-                this.outputWordOutputWeights.subtract(this.outputGradient.mapMultiply(this.model.getLearningRate()));
+        this.model.setOutputWeight(this.outputLocalIndex,
+                this.outputWordOutputWeights.subtract(this.outputGradient.mapMultiply(this.model.getLearningRate())));
         return this.inputGradient;
     }
 
@@ -56,13 +55,13 @@ public class Word2VecTrainingStep {
                         this.input.getOneHotIndex(), this.output.getOneHotIndex());
 
         for (int localSampleIndex : negativeSamples) {
-            RealVector sampledWeight = this.model.getOutputWeights()[localSampleIndex];
+            RealVector sampledWeight = this.model.getOutputWeight(localSampleIndex);
             double sigmoidResult = this.sigmoid.value(sampledWeight.dotProduct(this.input.getWeights()));
             RealVector sampleGradient = this.input.getWeights().mapMultiply(sigmoidResult);
             this.inputGradient = this.inputGradient.add(sampledWeight.mapMultiply(sigmoidResult));
 
-            this.model.getOutputWeights()[localSampleIndex] =
-                    sampledWeight.subtract(sampleGradient.mapMultiply(this.model.getLearningRate()));
+            this.model.setOutputWeight(localSampleIndex,
+                    sampledWeight.subtract(sampleGradient.mapMultiply(this.model.getLearningRate())));
         }
 
     }

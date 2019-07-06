@@ -8,9 +8,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-@Getter
 public class Word2VecModel {
 
     private static final Logger Log = LogManager.getLogger(Word2VecModel.class);
@@ -27,8 +27,7 @@ public class Word2VecModel {
                 Word2VecModel.instance = new Word2VecModel();
             }
             return Word2VecModel.instance;
-        }
-        finally {
+        } finally {
             Word2VecModel.instanceLock.unlock();
         }
     }
@@ -37,15 +36,15 @@ public class Word2VecModel {
         Word2VecModel.modelConfiguration = modelConfiguration;
     }
 
-    @Getter
     private final RealVector[] inputWeights;
-    @Getter
     private final RealVector[] outputWeights;
     private final Random randomGenerator = new Random();
     @Getter
     private final Word2VecConfiguration configuration;
     @Getter
     private float learningRate;
+    private final ConcurrentHashMap<Integer, ReentrantLock> inputWeightLocks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, ReentrantLock> outputWeightLocks = new ConcurrentHashMap<>();
 
 
     private Word2VecModel() {
@@ -57,6 +56,40 @@ public class Word2VecModel {
         this.learningRate = this.configuration.getLearningRate();
 
         Log.info("Done initializing Word2VecModel");
+    }
+
+    public void setInputWeight(int index, RealVector newWeight) {
+        this.inputWeightLocks.putIfAbsent(index, new ReentrantLock());
+        this.inputWeightLocks.get(index).lock();
+        try {
+            this.inputWeights[index] = newWeight;
+        } finally {
+            this.inputWeightLocks.get(index).unlock();
+            this.inputWeightLocks.remove(index);
+        }
+    }
+
+    public void setOutputWeight(int index, RealVector newWeight) {
+        this.outputWeightLocks.putIfAbsent(index, new ReentrantLock());
+        this.outputWeightLocks.get(index).lock();
+        try {
+            this.outputWeights[index] = newWeight;
+        } finally {
+            this.outputWeightLocks.get(index).unlock();
+            this.outputWeightLocks.remove(index);
+        }
+    }
+
+    public RealVector getInputWeight(int index) {
+        this.inputWeightLocks.putIfAbsent(index, new ReentrantLock());
+        this.inputWeightLocks.get(index).lock();
+        return this.inputWeights[index];
+    }
+
+    public RealVector getOutputWeight(int index) {
+        this.outputWeightLocks.putIfAbsent(index, new ReentrantLock());
+        this.outputWeightLocks.get(index).lock();
+        return this.outputWeights[index];
     }
 
     private RealVector[] createWeights() {
@@ -82,7 +115,12 @@ public class Word2VecModel {
     public WordEmbedding createEmbedding(String word) {
         long oneHotIndex = Vocabulary.getInstance().oneHotIndex(word);
         int localOneHotIndex = (int) (oneHotIndex - Vocabulary.getInstance().localFirstWordIndex());
-        return new WordEmbedding(oneHotIndex, this.inputWeights[localOneHotIndex]);
+        try {
+            return new WordEmbedding(oneHotIndex, this.inputWeights[localOneHotIndex]);
+        } finally {
+            this.inputWeightLocks.get(localOneHotIndex).unlock();
+            this.inputWeightLocks.remove(localOneHotIndex);
+        }
     }
 
     public RealVector train(EncodedSkipGram skipGram) {
@@ -92,6 +130,7 @@ public class Word2VecModel {
 
     public void updateWeight(long oneHotIndex, RealVector gradient) {
         int localIndex = (int) (oneHotIndex - Vocabulary.getInstance().localFirstWordIndex());
-        this.inputWeights[localIndex] = this.inputWeights[localIndex].subtract(gradient.mapMultiply(this.learningRate));
+        RealVector inputWeight = this.getInputWeight(localIndex);
+        this.setInputWeight(localIndex, inputWeight.subtract(gradient.mapMultiply(this.learningRate)));
     }
 }
