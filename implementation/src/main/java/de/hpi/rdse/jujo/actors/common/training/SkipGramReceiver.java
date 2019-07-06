@@ -57,9 +57,14 @@ public class SkipGramReceiver extends AbstractReapedActor {
         if (!Vocabulary.getInstance().containsLocally(message.getSkipGram().getExpectedOutput())) {
             return;
         }
+
+        this.log().debug(String.format("About to train on expected output %s", message.getSkipGram().getExpectedOutput()));
+
         RealVector inputGradient = Word2VecModel.getInstance().train(message.getSkipGram());
         long oneHotIndex = message.getSkipGram().getEncodedInput().getOneHotIndex();
         message.getWordEndpointResponsibleForInput().tell(new WordEndpoint.UpdateWeight(oneHotIndex, inputGradient),
                 this.self());
+
+        this.log().debug(String.format("Done training on expected output %s", message.getSkipGram().getExpectedOutput()));
     }
 }

@@ -58,37 +58,69 @@ public class Word2VecModel {
         Log.info("Done initializing Word2VecModel");
     }
 
-    public void setInputWeight(int index, RealVector newWeight) {
+    public void lockInputWeight(int index) {
         this.inputWeightLocks.putIfAbsent(index, new ReentrantLock());
         this.inputWeightLocks.get(index).lock();
+
+        Log.debug(String.format("Locked input weight @ %d", index));
+    }
+
+    public void unlockInputWeight(int index) {
+        ReentrantLock lock = this.inputWeightLocks.get(index);
+        if (lock == null) {
+            return;
+        }
+
+        lock.unlock();
+        this.inputWeightLocks.remove(index);
+
+        Log.debug(String.format("Unlocked input weight @ %d", index));
+    }
+
+    public void lockOutputWeight(int index) {
+        this.outputWeightLocks.putIfAbsent(index, new ReentrantLock());
+        this.outputWeightLocks.get(index).lock();
+
+        Log.debug(String.format("Locked output weight @ %d", index));
+    }
+
+    public void unlockOutputWeight(int index) {
+        ReentrantLock lock = this.outputWeightLocks.get(index);
+        if (lock == null) {
+            return;
+        }
+
+        lock.unlock();
+        this.outputWeightLocks.remove(index);
+
+        Log.debug(String.format("Unlocked output weight @ %d", index));
+    }
+
+    public void setInputWeight(int index, RealVector newWeight) {
         try {
+            this.lockInputWeight(index);
             this.inputWeights[index] = newWeight;
         } finally {
-            this.inputWeightLocks.get(index).unlock();
-            this.inputWeightLocks.remove(index);
+            this.unlockInputWeight(index);
         }
     }
 
     public void setOutputWeight(int index, RealVector newWeight) {
-        this.outputWeightLocks.putIfAbsent(index, new ReentrantLock());
-        this.outputWeightLocks.get(index).lock();
         try {
+            this.lockOutputWeight(index);
             this.outputWeights[index] = newWeight;
         } finally {
-            this.outputWeightLocks.get(index).unlock();
-            this.outputWeightLocks.remove(index);
+            this.unlockOutputWeight(index);
         }
     }
 
     public RealVector getInputWeight(int index) {
-        this.inputWeightLocks.putIfAbsent(index, new ReentrantLock());
-        this.inputWeightLocks.get(index).lock();
+        this.lockInputWeight(index);
         return this.inputWeights[index];
     }
 
     public RealVector getOutputWeight(int index) {
-        this.outputWeightLocks.putIfAbsent(index, new ReentrantLock());
-        this.outputWeightLocks.get(index).lock();
+        this.lockOutputWeight(index);
         return this.outputWeights[index];
     }
 
@@ -119,8 +151,7 @@ public class Word2VecModel {
             RealVector inputWeight = this.getInputWeight(localOneHotIndex);
             return new WordEmbedding(oneHotIndex, inputWeight);
         } finally {
-            this.inputWeightLocks.get(localOneHotIndex).unlock();
-            this.inputWeightLocks.remove(localOneHotIndex);
+            this.unlockInputWeight(localOneHotIndex);
         }
     }
 
