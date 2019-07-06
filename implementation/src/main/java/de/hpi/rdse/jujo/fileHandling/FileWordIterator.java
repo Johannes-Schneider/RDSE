@@ -32,11 +32,15 @@ public class FileWordIterator implements Iterator<String[]> {
     public String[] next() {
         byte[] buffer = new byte[nextReadSize()];
         try {
-            this.inputStream.read(buffer);
-            int lastDelimiterIndex = Utility.lastIndexOfDelimiter(buffer);
-            this.inputStream.skip((lastDelimiterIndex + 1) - buffer.length);
-            return Vocabulary.decode(buffer, 0, lastDelimiterIndex)
-                             .split("\\s");
+            int readLength = this.inputStream.read(buffer);
+
+            if (this.hasNext()) {
+                int lastDelimiterIndex = Utility.lastIndexOfDelimiter(buffer);
+                this.inputStream.skip((lastDelimiterIndex + 1) - buffer.length);
+                readLength = lastDelimiterIndex;
+            }
+
+            return Vocabulary.decode(buffer, 0, readLength).split("\\s");
         } catch (IOException e) {
             Log.error("Unable to read from Filestream.", e);
             this.closeFileStream();
