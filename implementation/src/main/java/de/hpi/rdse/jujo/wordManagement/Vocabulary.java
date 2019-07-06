@@ -34,11 +34,15 @@ public class Vocabulary implements Iterable<String> {
     private static Vocabulary instance;
 
     public static void createInstance(TreeMap<String, Long> subsampledWordCounts) {
+        Log.info("Start creating vocabulary");
+
         if (Vocabulary.instance != null) {
             Log.error("Tried to create a second instance of Vocabulary!");
             return;
         }
         Vocabulary.instance = new Vocabulary(subsampledWordCounts);
+
+        Log.info("Done creating vocabulary");
     }
 
     public static Vocabulary getInstance() {

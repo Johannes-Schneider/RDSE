@@ -111,9 +111,16 @@ public class TrainingCoordinator extends AbstractReapedActor {
 
     private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {
         if (!this.trainingHasStarted) {
+            this.log().debug(String.format("Buffering encoded skip-gram \"%s\" from %s",
+                    message.getSkipGram().getExpectedOutput(), this.sender().path()));
+
             this.trainingBuffer.add(message);
             return;
         }
+
+        this.log().debug(String.format("Processing encoded skip-gram (expected output = \"%s\") from %s",
+                message.getSkipGram().getExpectedOutput(), this.sender().path()));
+
         this.router.route(message, this.sender());
     }
 
@@ -123,6 +130,8 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private void handle(Terminated message) {
+        this.log().info("Skip gram receiver terminated");
+
         this.router = this.router.removeRoutee(message.actor());
         if (this.isTrainingFinished) {
             if (this.router.routees().size() < 1) {
