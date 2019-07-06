@@ -79,7 +79,7 @@ public class CorpusReceiver extends AbstractReapedActor {
 
     private NotUsed handleTermination(NotUsed not, CompletionStage<Done> stage) {
         stage.thenApply(x -> {
-            this.log().info("Corpus transfer completed");
+            this.log().info("Successfully received corpus.");
             this.context().parent().tell(new WorkerCoordinator.CorpusTransferCompleted(
                     Paths.get(this.corpusLocation.getPath(), CORPUS_FILE_NAME).toString()), this.self());
             return x;
