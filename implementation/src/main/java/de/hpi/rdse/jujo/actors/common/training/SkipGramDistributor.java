@@ -54,6 +54,8 @@ public class SkipGramDistributor extends AbstractReapedActor {
     }
 
     private void createAndDistributeSkipGrams(ActorRef skipGramReceiver) {
+        this.log().info("Currently producing skip-grams for %d producers",
+                this.skipGramProducers.values().stream().filter(SkipGramProducer::hasNext).map(producer -> 1L).mapToLong(Long::longValue).sum());
         if (this.skipGramProducers.values().stream().noneMatch(SkipGramProducer::hasNext)) {
             this.log().info("All skip-grams have been distributed.");
             this.context().parent().tell(new TrainingCoordinator.SkipGramsDistributed(), this.self());
