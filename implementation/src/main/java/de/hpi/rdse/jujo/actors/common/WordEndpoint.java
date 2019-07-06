@@ -147,7 +147,7 @@ public class WordEndpoint extends AbstractReapedActor {
                 }
                 WordEmbedding embeddedInput = Word2VecModel.getInstance().createEmbedding(input);
                 EncodedSkipGram encodedSkipGram = new EncodedSkipGram(unencodedSkipGram.getExpectedOutput(), embeddedInput);
-                this.sender().tell(new SkipGramReceiver.ProcessEncodedSkipGram(encodedSkipGram), this.self());
+                this.sender().tell(new SkipGramReceiver.ProcessEncodedSkipGram(encodedSkipGram, this.self()), this.self());
             }
         }
         this.log().debug(String.format("Successfully encoded %d skip-grams", message.getUnencodedSkipGrams().size()));

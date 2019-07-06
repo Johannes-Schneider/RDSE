@@ -3,6 +3,11 @@ package de.hpi.rdse.jujo.actors.common.training;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.actor.Terminated;
+import akka.routing.ActorRefRoutee;
+import akka.routing.RoundRobinRoutingLogic;
+import akka.routing.Routee;
+import akka.routing.Router;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,11 +15,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Queue;
 
 public class TrainingCoordinator extends AbstractReapedActor {
 
-    public static Props props() {
-        return Props.create(TrainingCoordinator.class, TrainingCoordinator::new);
+    public static Props props(int numberOfLocalWorkers) {
+        return Props.create(TrainingCoordinator.class, () -> new TrainingCoordinator(numberOfLocalWorkers));
     }
 
     @NoArgsConstructor @AllArgsConstructor @Builder @Getter
@@ -36,10 +45,15 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private ActorRef skipGramDistributor;
-    private ActorRef skipGramReceiver;
+    private boolean trainingHasStarted = false;
+    private boolean isTrainingFinished = false;
+    private Router router;
+    private final int numberOfLocalWorkers;
+    private final Queue<SkipGramReceiver.ProcessEncodedSkipGram> trainingBuffer = new PriorityQueue<>();
 
-    private TrainingCoordinator() {
-        this.initializeSkipGramReceiver();
+
+    private TrainingCoordinator(int numberOfLocalWorkers) {
+        this.numberOfLocalWorkers = numberOfLocalWorkers;
     }
 
     @Override
@@ -49,13 +63,37 @@ public class TrainingCoordinator extends AbstractReapedActor {
                    .match(SkipGramsDistributed.class, this::handle)
                    .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
                    .match(SkipGramChunkTransferred.class, this::handle)
+                   .match(Terminated.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
 
     private void handle(StartTraining message) {
         this.log().info("Start training!");
+        this.router = this.createRoundRobinRouter(this.numberOfLocalWorkers);
         this.initializeAndStartSkipGramDistribution(message.getLocalCorpusPartitionPath());
+        this.trainingHasStarted = true;
+        this.processTrainingBuffer();
+    }
+
+    private void processTrainingBuffer() {
+        while (!this.trainingBuffer.isEmpty()) {
+            this.router.route(this.trainingBuffer.poll(), this.self());
+        }
+    }
+
+    private Router createRoundRobinRouter(int numberOfWorkers) {
+        List<Routee> workers = new ArrayList<>();
+        for (int i = 0; i < numberOfWorkers; i++) {
+            workers.add(this.createWorker());
+        }
+        return new Router(new RoundRobinRoutingLogic(), workers);
+    }
+
+    private ActorRefRoutee createWorker() {
+        ActorRef worker = this.context().actorOf(SkipGramReceiver.props());
+        this.context().watch(worker);
+        return new ActorRefRoutee(worker);
     }
 
     private void initializeAndStartSkipGramDistribution(String localCorpusPartitionPath) {
@@ -65,23 +103,32 @@ public class TrainingCoordinator extends AbstractReapedActor {
         this.skipGramDistributor = this.context().actorOf(SkipGramDistributor.props(localCorpusPartitionPath));
     }
 
-    private void initializeSkipGramReceiver() {
-        if (this.skipGramReceiver != null) {
-            return;
-        }
-        this.skipGramReceiver = this.context().actorOf(SkipGramReceiver.props());
-    }
-
     private void handle(SkipGramsDistributed message) {
         this.log().info("Successfully distributed all skip-grams");
         this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
     private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {
-        this.skipGramReceiver.tell(message, this.sender());
+        if (!this.trainingHasStarted) {
+            this.trainingBuffer.add(message);
+            return;
+        }
+        this.router.route(message, this.sender());
     }
 
     private void handle(SkipGramChunkTransferred message) {
         message.getProducer().tell(new SkipGramDistributor.RequestNextSkipGramChunk(), this.self());
+    }
+
+    private void handle(Terminated message) {
+        this.router = this.router.removeRoutee(message.actor());
+        if (this.isTrainingFinished) {
+            if (this.router.routees().size() < 1) {
+                this.log().info("Training has finished and all skipGramReceivers terminated");
+                //TODO: Start weight delivery to master
+            }
+            return;
+        }
+        this.router.addRoutee(this.createWorker());
     }
 }

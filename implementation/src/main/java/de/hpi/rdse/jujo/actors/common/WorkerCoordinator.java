@@ -98,7 +98,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
     }
 
     private void handle(WordEndpoint.VocabularyCreated message) {
-        this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props());
+        this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props(this.maxNumberOfLocalWorkers));
     }
 
     private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {

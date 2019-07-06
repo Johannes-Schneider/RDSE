@@ -1,5 +1,6 @@
 package de.hpi.rdse.jujo.actors.common.training;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WordEndpoint;
@@ -32,6 +33,7 @@ public class SkipGramReceiver extends AbstractReapedActor {
     public static class ProcessEncodedSkipGram implements Serializable {
         private static final long serialVersionUID = -6574596641614399323L;
         private EncodedSkipGram skipGram;
+        private ActorRef wordEndpointResponsibleForInput;
     }
 
 
@@ -57,6 +59,7 @@ public class SkipGramReceiver extends AbstractReapedActor {
         }
         RealVector inputGradient = Word2VecModel.getInstance().train(message.getSkipGram());
         long oneHotIndex = message.getSkipGram().getEncodedInput().getOneHotIndex();
-        this.sender().tell(new WordEndpoint.UpdateWeight(oneHotIndex, inputGradient), this.self());
+        message.getWordEndpointResponsibleForInput().tell(new WordEndpoint.UpdateWeight(oneHotIndex, inputGradient),
+                this.self());
     }
 }
