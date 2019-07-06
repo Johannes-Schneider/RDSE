@@ -16,8 +16,8 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.PriorityQueue;
 import java.util.Queue;
 
 public class TrainingCoordinator extends AbstractReapedActor {
@@ -49,7 +49,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
     private boolean isTrainingFinished = false;
     private Router router;
     private final int numberOfLocalWorkers;
-    private final Queue<SkipGramReceiver.ProcessEncodedSkipGram> trainingBuffer = new PriorityQueue<>();
+    private final Queue<SkipGramReceiver.ProcessEncodedSkipGram> trainingBuffer = new LinkedList<>();
 
 
     private TrainingCoordinator(int numberOfLocalWorkers) {
