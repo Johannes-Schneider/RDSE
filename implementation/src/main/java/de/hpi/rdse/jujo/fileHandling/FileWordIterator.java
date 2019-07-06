@@ -33,7 +33,7 @@ public class FileWordIterator implements Iterator<String[]> {
         byte[] buffer = new byte[nextReadSize()];
         try {
             this.inputStream.read(buffer);
-            int lastDelimiterIndex = Utility.lastIndexOfDelimiter(buffer);
+            int lastDelimiterIndex = Utility.lastIndexOfDelimiter(buffer) + 1;
             this.inputStream.skip(lastDelimiterIndex - buffer.length);
             return Vocabulary.decode(buffer, 0, lastDelimiterIndex)
                              .split("\\s");
