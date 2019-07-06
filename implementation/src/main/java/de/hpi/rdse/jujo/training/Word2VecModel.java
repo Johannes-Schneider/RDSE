@@ -70,7 +70,6 @@ public class Word2VecModel {
         }
 
         lock.unlock();
-        this.inputWeightLocks.remove(index);
     }
 
     public void lockOutputWeight(int index) {
@@ -85,7 +84,6 @@ public class Word2VecModel {
         }
 
         lock.unlock();
-        this.outputWeightLocks.remove(index);
     }
 
     public void setInputWeight(int index, RealVector newWeight) {
