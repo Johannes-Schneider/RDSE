@@ -4,12 +4,16 @@ import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.Getter;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Getter
 public class Word2VecModel {
+
+    private static final Logger Log = LogManager.getLogger(Word2VecModel.class);
 
     private static Word2VecConfiguration modelConfiguration;
 
@@ -45,17 +49,21 @@ public class Word2VecModel {
 
 
     private Word2VecModel() {
+        Log.info("Start initializing Word2VecModel");
+
         this.configuration = Word2VecModel.modelConfiguration.clone();
         this.inputWeights = this.createWeights();
         this.outputWeights = this.createWeights();
         this.learningRate = this.configuration.getLearningRate();
+
+        Log.info("Done initializing Word2VecModel");
     }
 
     private RealVector[] createWeights() {
         RealVector[] weights = new RealVector[Vocabulary.getInstance().length()];
         for (int i = 0; i < weights.length; ++i) {
             double[] rawData = this.createRandomWeights(this.configuration.getDimensions());
-            weights[i] = new ArrayRealVector(rawData);
+            weights[i] = new ArrayRealVector(rawData, false);
         }
         return weights;
     }

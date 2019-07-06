@@ -16,7 +16,7 @@ public class MasterCommand extends CommandBase {
     public static final int DEFAULT_NUMBER_OF_NEGATIVE_SAMPLES = 5;
 
     @Parameter(names = {"-h", "--host"}, description = "host address of this system")
-    String host = getDefaultHost();
+    String host;
 
     @Parameter(names = {"-i", "--input"}, description = "text corpus to train on", validateValueWith = FileValidator.class)
     String pathToInputFile;

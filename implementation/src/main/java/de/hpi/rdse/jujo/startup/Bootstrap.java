@@ -50,7 +50,8 @@ public class Bootstrap {
     }
 
     public static void runSlave(SlaveCommand slaveCommand) {
-        final Config config = ConfigurationFactory.createRemoteAkkaConfig(slaveCommand.getDefaultHost(), SlaveCommand.DEFAULT_PORT);
+        final Config config = ConfigurationFactory.createRemoteAkkaConfig(slaveCommand.getHost(),
+                SlaveCommand.DEFAULT_PORT);
         final ActorSystem actorSystem = ActorSystem.create(DEFAULT_SLAVE_SYSTEM_NAME, config);
 
         actorSystem.actorOf(Reaper.props(), Reaper.DEFAULT_NAME);

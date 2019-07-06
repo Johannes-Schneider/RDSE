@@ -13,12 +13,4 @@ abstract class CommandBase {
 
     @Parameter(names = {"-w", "--workers"}, description = "number of local workers")
     int numberOfWorkers = DEFAULT_NUMBER_OF_WORKERS;
-
-    public String getDefaultHost() {
-        try {
-            return InetAddress.getLocalHost().getHostAddress();
-        } catch (UnknownHostException e) {
-            return "localhost";
-        }
-    }
 }
