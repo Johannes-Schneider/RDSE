@@ -116,7 +116,8 @@ public class Word2VecModel {
         long oneHotIndex = Vocabulary.getInstance().oneHotIndex(word);
         int localOneHotIndex = (int) (oneHotIndex - Vocabulary.getInstance().localFirstWordIndex());
         try {
-            return new WordEmbedding(oneHotIndex, this.getInputWeight(localOneHotIndex));
+            RealVector inputWeight = this.getInputWeight(localOneHotIndex);
+            return new WordEmbedding(oneHotIndex, inputWeight);
         } finally {
             this.inputWeightLocks.get(localOneHotIndex).unlock();
             this.inputWeightLocks.remove(localOneHotIndex);
