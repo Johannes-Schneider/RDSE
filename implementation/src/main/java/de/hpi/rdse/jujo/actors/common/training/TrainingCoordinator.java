@@ -5,10 +5,13 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.routing.ActorRefRoutee;
+import akka.routing.ConsistentHashingRouter;
+import akka.routing.ConsistentHashingRoutingLogic;
 import akka.routing.RoundRobinRoutingLogic;
 import akka.routing.Routee;
 import akka.routing.Router;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
+import de.hpi.rdse.jujo.training.EncodedSkipGram;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -88,7 +91,19 @@ public class TrainingCoordinator extends AbstractReapedActor {
         for (int i = 0; i < numberOfWorkers; i++) {
             workers.add(this.createWorker());
         }
-        return new Router(new RoundRobinRoutingLogic(), workers);
+
+        final ConsistentHashingRouter.ConsistentHashMapper hashMapper = new ConsistentHashingRouter.ConsistentHashMapper() {
+            @Override
+            public Object hashKey(Object message) {
+                if (message instanceof SkipGramReceiver.ProcessEncodedSkipGram) {
+                    return ((SkipGramReceiver.ProcessEncodedSkipGram) message).getSkipGram().getExpectedOutput();
+                } else {
+                    return null;
+                }
+            }
+        };
+
+        return new Router(new ConsistentHashingRoutingLogic(this.context().system(), 1, hashMapper), workers);
     }
 
     private ActorRefRoutee createWorker() {
