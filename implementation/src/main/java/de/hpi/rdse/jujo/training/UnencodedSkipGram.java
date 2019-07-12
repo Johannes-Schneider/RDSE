@@ -16,7 +16,7 @@ public class UnencodedSkipGram {
     }
 
     private String expectedOutput;
-    private List<String> inputs = new ArrayList<>();
+    private final List<String> inputs = new ArrayList<>();
 
     public UnencodedSkipGram(String expectedOutput) {
         this.expectedOutput = expectedOutput;

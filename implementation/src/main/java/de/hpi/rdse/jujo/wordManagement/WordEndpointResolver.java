@@ -44,7 +44,7 @@ public class WordEndpointResolver {
         }
     }
 
-    private List<ActorRef> wordEndpoints = new ArrayList<>();
+    private final List<ActorRef> wordEndpoints = new ArrayList<>();
     private final ActorRef localWordEndpoint;
 
     private WordEndpointResolver(ActorRef localWordEndpoint) {

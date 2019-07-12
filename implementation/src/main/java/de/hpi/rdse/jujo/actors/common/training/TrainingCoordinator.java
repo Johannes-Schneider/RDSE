@@ -47,7 +47,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
 
     private ActorRef skipGramDistributor;
     private boolean trainingHasStarted = false;
-    private boolean isTrainingFinished = false;
+    private final boolean isTrainingFinished = false;
     private Router router;
     private final int numberOfLocalWorkers;
     private final Queue<SkipGramReceiver.ProcessEncodedSkipGram> trainingBuffer = new LinkedList<>();

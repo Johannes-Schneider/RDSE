@@ -5,6 +5,7 @@ import akka.actor.RootActorPath;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import com.sun.istack.internal.NotNull;
 import de.hpi.rdse.jujo.training.AliasSampler;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
@@ -96,7 +97,7 @@ public class Vocabulary implements Iterable<String> {
         return this.words.length;
     }
 
-    @Override
+    @Override @NotNull
     public Iterator<String> iterator() {
         return Arrays.stream(this.words).iterator();
     }

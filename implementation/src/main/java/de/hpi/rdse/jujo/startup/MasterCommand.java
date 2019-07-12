@@ -23,21 +23,21 @@ public class MasterCommand extends CommandBase {
     @Parameter(names = {"--slaves"}, description = "number of slaves to wait for", required = true)
     int numberOfSlaves;
 
-    @Parameter(names = {"-d", "--dimensions"}, description = "dimensionality of resulting word embeddings")
+    @Parameter(names = {"-d", "--dimensions"}, description = "dimensionality of resulting word embeddings") final
     int dimensions = DEFAULT_DIMENSIONS;
 
-    @Parameter(names = {"--window-size"}, description = "size of window for building skip-grams")
+    @Parameter(names = {"--window-size"}, description = "size of window for building skip-grams") final
     int windowSize = DEFAULT_WINDOW_SIZE;
 
-    @Parameter(names = {"-e", "--epochs"}, description = "number of epochs to train")
+    @Parameter(names = {"-e", "--epochs"}, description = "number of epochs to train") final
     int numberOfEpochs = DEFAULT_NUMBER_OF_EPOCHS;
 
-    @Parameter(names = {"-l", "--learning-rate"}, description = "initial learning rate")
+    @Parameter(names = {"-l", "--learning-rate"}, description = "initial learning rate") final
     float learningRate = DEFAULT_LEARNING_RATE;
 
-    @Parameter(names = {"--min-learning-rate"}, description = "minimum learning rate")
+    @Parameter(names = {"--min-learning-rate"}, description = "minimum learning rate") final
     float minimumLearningRate = DEFAULT_MINIMUM_LEARNING_RATE;
 
-    @Parameter(names = {"-n", "--negative-samples"}, description = "number of negative samples")
+    @Parameter(names = {"-n", "--negative-samples"}, description = "number of negative samples") final
     int numberOfNegativeSamples = DEFAULT_NUMBER_OF_NEGATIVE_SAMPLES;
 }

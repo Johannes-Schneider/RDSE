@@ -53,8 +53,8 @@ public class Subsampler extends AbstractReapedActor {
 
     private final Map<String, Long> wordCounts = new HashMap<>();
     private Map<String, Long> undistributedWordCounts = new HashMap<>();
-    private Set<String> unacknowledgedTakeOverOwnerships = new HashSet<>();
-    private Set<ActorRef> wordEndpointsDoneDistributingWordOwnerships = new HashSet<>();
+    private final Set<String> unacknowledgedTakeOverOwnerships = new HashSet<>();
+    private final Set<ActorRef> wordEndpointsDoneDistributingWordOwnerships = new HashSet<>();
     private long totalCorpusSize = 0;
     private SubsamplingStrategy subsamplingStrategy;
     private long initialCorpusPartitionSize = 0;

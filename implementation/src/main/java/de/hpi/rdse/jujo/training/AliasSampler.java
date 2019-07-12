@@ -14,7 +14,7 @@ public class AliasSampler {
 
     private static final Logger Log = LogManager.getLogger(FilePartitionIterator.class);
 
-    private Long[] wordCounts;
+    private final Long[] wordCounts;
     private final double[] s;
     private final int[] a;
     private final Queue<Integer> T_L;
@@ -88,6 +88,7 @@ public class AliasSampler {
     private void buildAlias() {
         while (this.T_L.size() > 0) {
             int j = this.T_L.poll();
+            @SuppressWarnings("ConstantConditions")
             int k = this.T_H.poll();
             this.s[k] = this.s[k] - 1 + this.s[j];
             this.a[j] = k;

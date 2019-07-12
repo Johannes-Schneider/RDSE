@@ -9,7 +9,7 @@ public class FrequencyBasedSubsampling implements SubsamplingStrategy {
 
     private final long corpusSize;
     private final Map<String, Long> wordCounts;
-    private Random random = new Random();
+    private final Random random = new Random();
 
     public FrequencyBasedSubsampling(long corpusSize, Map<String, Long> wordCounts) {
         this.corpusSize = corpusSize;

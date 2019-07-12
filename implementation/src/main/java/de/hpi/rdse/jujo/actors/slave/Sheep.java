@@ -40,7 +40,7 @@ public class Sheep extends AbstractReapedActor {
     }
 
     private Cancellable connectSchedule;
-    private ActorRef slave;
+    private final ActorRef slave;
 
     private Sheep(ActorRef slave) {
         this.slave = slave;

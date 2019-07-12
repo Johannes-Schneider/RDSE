@@ -33,6 +33,7 @@ public class Word2VecConfiguration  {
     @Builder.Default
     private int numberOfNegativeSamples = MasterCommand.DEFAULT_NUMBER_OF_NEGATIVE_SAMPLES;
 
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
     public Word2VecConfiguration clone() {
         return builder()
                 .dimensions(this.dimensions)

@@ -41,7 +41,7 @@ public class Word2VecModel {
     private final Random randomGenerator = new Random();
     @Getter
     private final Word2VecConfiguration configuration;
-    private float learningRate;
+    private final float learningRate;
     private final ConcurrentHashMap<Integer, ReentrantLock> inputWeightLocks = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, ReentrantLock> outputWeightLocks = new ConcurrentHashMap<>();
 
