@@ -105,25 +105,23 @@ public class Word2VecModel {
         return trainingStep.train();
     }
 
-    public void updateInputWeight(long oneHotIndex, RealVector gradient) {
-        int localIndex = Vocabulary.getInstance().toLocalOneHotIndex(oneHotIndex);
+    public void updateInputWeight(int localOneHotIndex, RealVector gradient) {
         try {
-            this.lockInputWeight(localIndex);
-            RealVector inputWeight = this.getInputWeight(localIndex);
-            this.inputWeights[localIndex] = inputWeight.subtract(gradient.mapMultiply(this.learningRate));
+            this.lockInputWeight(localOneHotIndex);
+            RealVector inputWeight = this.getInputWeight(localOneHotIndex);
+            this.inputWeights[localOneHotIndex] = inputWeight.subtract(gradient.mapMultiply(this.learningRate));
         } finally {
-            this.unlockInputWeight(localIndex);
+            this.unlockInputWeight(localOneHotIndex);
         }
     }
 
-    public void updateOutputWeight(long oneHotIndex, RealVector gradient) {
-        int localIndex = Vocabulary.getInstance().toLocalOneHotIndex(oneHotIndex);
+    public void updateOutputWeight(int localOneHotIndex, RealVector gradient) {
         try {
-            this.lockOutputWeight(localIndex);
-            RealVector outputWeight = this.getOutputWeight(localIndex);
-            this.outputWeights[localIndex] = outputWeight.subtract(gradient.mapMultiply(this.learningRate));
+            this.lockOutputWeight(localOneHotIndex);
+            RealVector outputWeight = this.getOutputWeight(localOneHotIndex);
+            this.outputWeights[localOneHotIndex] = outputWeight.subtract(gradient.mapMultiply(this.learningRate));
         } finally {
-            this.unlockOutputWeight(localIndex);
+            this.unlockOutputWeight(localOneHotIndex);
         }
     }
 

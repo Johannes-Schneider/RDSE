@@ -154,7 +154,8 @@ public class WordEndpoint extends AbstractReapedActor {
     }
 
     private void handle(UpdateWeight message) {
-        Word2VecModel.getInstance().updateInputWeight(message.getOneHotIndex(), message.getGradient());
+        int localOneHotIndex = Vocabulary.getInstance().toLocalOneHotIndex(message.getOneHotIndex());
+        Word2VecModel.getInstance().updateInputWeight(localOneHotIndex, message.getGradient());
     }
 
     private void handle(TrainingCoordinator.SkipGramChunkTransferred message) {
