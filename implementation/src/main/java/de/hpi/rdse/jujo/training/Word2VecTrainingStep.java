@@ -17,15 +17,17 @@ public class Word2VecTrainingStep {
     private final RealVector outputWordOutputWeights;
     private final Sigmoid sigmoid = new Sigmoid();
     private final int outputLocalIndex;
+    private final int epoch;
 
     private RealVector inputGradient;
     private RealVector outputGradient;
 
 
-    public Word2VecTrainingStep(EncodedSkipGram skipGram) {
+    public Word2VecTrainingStep(EncodedSkipGram skipGram, int epoch) {
         this.skipGram = skipGram;
         this.input = skipGram.getEncodedInput();
         this.outputLocalIndex = Vocabulary.getInstance().localOneHotIndex(skipGram.getExpectedOutput());
+        this.epoch = epoch;
         this.outputWordOutputWeights = this.model.getOutputWeight(this.outputLocalIndex);
     }
 
@@ -38,7 +40,7 @@ public class Word2VecTrainingStep {
 
         this.trainNegativeSamples();
 
-        this.model.updateOutputWeight(this.outputLocalIndex, this.outputGradient);
+        this.model.updateOutputWeight(this.outputLocalIndex, this.outputGradient, this.epoch);
         return this.inputGradient;
     }
 
@@ -54,7 +56,7 @@ public class Word2VecTrainingStep {
             RealVector sampleGradient = this.input.getWeights().mapMultiply(sigmoidResult);
             this.inputGradient = this.inputGradient.add(sampledWeight.mapMultiply(sigmoidResult));
 
-            this.model.updateOutputWeight(localSampleIndex, sampleGradient);
+            this.model.updateOutputWeight(localSampleIndex, sampleGradient, this.epoch);
         }
 
     }

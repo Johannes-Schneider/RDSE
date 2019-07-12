@@ -61,23 +61,29 @@ public class SkipGramDistributor extends AbstractReapedActor {
             this.context().parent().tell(new TrainingCoordinator.SkipGramsDistributed(), this.self());
             return;
         }
-        this.distributeSkipGrams(skipGramReceiver, this.skipGramProducers.get(skipGramReceiver.path().root()).next());
+        SkipGramProducer responsibleProducer = this.skipGramProducers.get(skipGramReceiver.path().root());
+        this.distributeSkipGrams(skipGramReceiver, responsibleProducer);
     }
 
-    private void distributeSkipGrams(ActorRef skipGramReceiver, List<UnencodedSkipGram> payload) {
-        if (payload.size() < 1) {
+    private void distributeSkipGrams(ActorRef skipGramReceiver, SkipGramProducer producer) {
+        if (!producer.hasNext()) {
             this.log().info(String.format("No more skip-grams for %s", skipGramReceiver.path()));
             return;
         }
+
+        List<UnencodedSkipGram> payload = producer.next();
 
         this.log().debug(String.format("Distributing %d skip-grams to %s", payload.size(), skipGramReceiver.path()));
         List<UnencodedSkipGram> unencodedSkipGrams = new ArrayList<>();
         ActorRef lastReceiver = skipGramReceiver;
         for (UnencodedSkipGram unencodedSkipGram : payload) {
             for (EncodedSkipGram encodedSkipGram : unencodedSkipGram.extractEncodedSkipGrams()) {
-                skipGramReceiver.tell(new SkipGramReceiver.ProcessEncodedSkipGram(encodedSkipGram,
-                                WordEndpointResolver.getInstance().localWordEndpoint()),
-                        this.self());
+                skipGramReceiver.tell(SkipGramReceiver.ProcessEncodedSkipGram
+                        .builder()
+                        .skipGram(encodedSkipGram)
+                        .wordEndpointResponsibleForInput(WordEndpointResolver.getInstance().localWordEndpoint())
+                        .epoch(producer.getCurrentEpoch())
+                        .build(), this.self());
             }
 
             unencodedSkipGrams.add(unencodedSkipGram);
@@ -90,7 +96,11 @@ public class SkipGramDistributor extends AbstractReapedActor {
                 this.groupByInputResolver(unencodedSkipGrams).entrySet()) {
 
             lastReceiver = skipGramsByInputResolver.getKey();
-            lastReceiver.tell(new WordEndpoint.EncodeSkipGrams(skipGramsByInputResolver.getValue()), skipGramReceiver);
+            lastReceiver.tell(WordEndpoint.EncodeSkipGrams
+                            .builder()
+                            .unencodedSkipGrams(skipGramsByInputResolver.getValue())
+                            .epoch(producer.getCurrentEpoch())
+                            .build(), skipGramReceiver);
         }
 
         ActorRef responsibleEndpoint =

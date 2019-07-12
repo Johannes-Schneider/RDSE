@@ -12,7 +12,8 @@ public class MasterCommand extends CommandBase {
     public static final int DEFAULT_DIMENSIONS = 100;
     public static final int DEFAULT_WINDOW_SIZE = 3;
     public static final int DEFAULT_NUMBER_OF_EPOCHS = 10;
-    public static final float DEFAULT_LEARNING_RATE = 0.05f;
+    public static final float DEFAULT_LEARNING_RATE = 0.1f;
+    public static final float DEFAULT_MINIMUM_LEARNING_RATE = 0.0001f;
     public static final int DEFAULT_NUMBER_OF_NEGATIVE_SAMPLES = 5;
 
     @Parameter(names = {"-i", "--input"}, description = "text corpus to train on", validateValueWith =
@@ -33,6 +34,9 @@ public class MasterCommand extends CommandBase {
 
     @Parameter(names = {"-l", "--learning-rate"}, description = "initial learning rate")
     float learningRate = DEFAULT_LEARNING_RATE;
+
+    @Parameter(names = {"--min-learning-rate"}, description = "minimum learning rate")
+    float minimumLearningRate = DEFAULT_MINIMUM_LEARNING_RATE;
 
     @Parameter(names = {"-n", "--negative-samples"}, description = "number of negative samples")
     int numberOfNegativeSamples = DEFAULT_NUMBER_OF_NEGATIVE_SAMPLES;

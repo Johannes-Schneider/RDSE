@@ -9,6 +9,7 @@ import de.hpi.rdse.jujo.training.UnencodedSkipGram;
 import de.hpi.rdse.jujo.training.Word2VecModel;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.apache.commons.math3.linear.RealVector;
@@ -29,11 +30,12 @@ public class SkipGramReceiver extends AbstractReapedActor {
         private List<UnencodedSkipGram> skipGrams = new ArrayList<>();
     }
 
-    @NoArgsConstructor @AllArgsConstructor @Getter
+    @NoArgsConstructor @AllArgsConstructor @Builder @Getter
     public static class ProcessEncodedSkipGram implements Serializable {
         private static final long serialVersionUID = -6574596641614399323L;
         private EncodedSkipGram skipGram;
         private ActorRef wordEndpointResponsibleForInput;
+        private int epoch;
     }
 
 
@@ -62,10 +64,13 @@ public class SkipGramReceiver extends AbstractReapedActor {
 
         this.log().debug(String.format("About to train on expected output %s", message.getSkipGram().getExpectedOutput()));
 
-        RealVector inputGradient = Word2VecModel.getInstance().train(message.getSkipGram());
+        RealVector inputGradient = Word2VecModel.getInstance().train(message.getSkipGram(), message.getEpoch());
         long oneHotIndex = message.getSkipGram().getEncodedInput().getOneHotIndex();
-        message.getWordEndpointResponsibleForInput().tell(new WordEndpoint.UpdateWeight(oneHotIndex, inputGradient),
-                this.self());
+        message.getWordEndpointResponsibleForInput().tell(WordEndpoint.UpdateWeight.builder()
+                                                                                   .gradient(inputGradient)
+                                                                                   .oneHotIndex(oneHotIndex)
+                                                                                   .epoch(message.getEpoch())
+                                                                                   .build(), this.self());
 
         this.log().debug(String.format("Done training on expected output %s", message.getSkipGram().getExpectedOutput()));
     }

@@ -72,4 +72,13 @@ public class FileWordIterator implements Iterator<String[]> {
             Log.warn("Unable to close Filestream", e);
         }
     }
+
+    public void reset() {
+        try {
+            this.inputStream.getChannel().position(0);
+        } catch (IOException e) {
+            Log.error("Unable to reset FileWordIterator", e);
+            this.closeFileStream();
+        }
+    }
 }

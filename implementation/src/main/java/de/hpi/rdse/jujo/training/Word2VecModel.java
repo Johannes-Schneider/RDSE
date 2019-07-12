@@ -41,7 +41,6 @@ public class Word2VecModel {
     private final Random randomGenerator = new Random();
     @Getter
     private final Word2VecConfiguration configuration;
-    @Getter
     private float learningRate;
     private final ConcurrentHashMap<Integer, ReentrantLock> inputWeightLocks = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, ReentrantLock> outputWeightLocks = new ConcurrentHashMap<>();
@@ -93,33 +92,26 @@ public class Word2VecModel {
         return new WordEmbedding(globalOneHotIndex, inputWeight);
     }
 
-    public WordEmbedding createOutputEmbedding(String word) {
-        long globalOneHotIndex = Vocabulary.getInstance().oneHotIndex(word);
-        int localOneHotIndex = Vocabulary.getInstance().toLocalOneHotIndex(globalOneHotIndex);
-        RealVector outputWeight = this.getOutputWeight(localOneHotIndex);
-        return new WordEmbedding(globalOneHotIndex, outputWeight);
-    }
-
-    public RealVector train(EncodedSkipGram skipGram) {
-        Word2VecTrainingStep trainingStep = new Word2VecTrainingStep(skipGram);
+    public RealVector train(EncodedSkipGram skipGram, int epoch) {
+        Word2VecTrainingStep trainingStep = new Word2VecTrainingStep(skipGram, epoch);
         return trainingStep.train();
     }
 
-    public void updateInputWeight(int localOneHotIndex, RealVector gradient) {
+    public void updateInputWeight(int localOneHotIndex, RealVector gradient, int epoch) {
         try {
             this.lockInputWeight(localOneHotIndex);
             RealVector inputWeight = this.getInputWeight(localOneHotIndex);
-            this.inputWeights[localOneHotIndex] = inputWeight.subtract(gradient.mapMultiply(this.learningRate));
+            this.inputWeights[localOneHotIndex] = inputWeight.subtract(gradient.mapMultiply(this.getLearningRate(epoch)));
         } finally {
             this.unlockInputWeight(localOneHotIndex);
         }
     }
 
-    public void updateOutputWeight(int localOneHotIndex, RealVector gradient) {
+    public void updateOutputWeight(int localOneHotIndex, RealVector gradient, int epoch) {
         try {
             this.lockOutputWeight(localOneHotIndex);
             RealVector outputWeight = this.getOutputWeight(localOneHotIndex);
-            this.outputWeights[localOneHotIndex] = outputWeight.subtract(gradient.mapMultiply(this.learningRate));
+            this.outputWeights[localOneHotIndex] = outputWeight.subtract(gradient.mapMultiply(this.getLearningRate(epoch)));
         } finally {
             this.unlockOutputWeight(localOneHotIndex);
         }
@@ -151,5 +143,12 @@ public class Word2VecModel {
         }
 
         lock.unlock();
+    }
+
+    private float getLearningRate(int epoch) {
+        Word2VecConfiguration configuration = this.getConfiguration();
+        float delta =
+                (this.learningRate - configuration.getMinimumLearningRate()) / (configuration.getNumberOfEpochs() - 1);
+        return this.learningRate - (epoch * delta);
     }
 }

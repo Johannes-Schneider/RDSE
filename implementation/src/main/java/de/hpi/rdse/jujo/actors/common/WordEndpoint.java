@@ -45,17 +45,19 @@ public class WordEndpoint extends AbstractReapedActor {
         private static final long serialVersionUID = -8133305903846340892L;
     }
 
-    @NoArgsConstructor @AllArgsConstructor @Getter
+    @NoArgsConstructor @AllArgsConstructor @Builder @Getter
     public static class EncodeSkipGrams implements Serializable {
         private static final long serialVersionUID = 4648091561498065299L;
         private List<UnencodedSkipGram> unencodedSkipGrams = new ArrayList<>();
+        private int epoch;
     }
 
-    @NoArgsConstructor @AllArgsConstructor @Getter
+    @NoArgsConstructor @AllArgsConstructor @Builder @Getter
     public static class UpdateWeight implements Serializable {
         private static final long serialVersionUID = -6193882947371330180L;
         private long oneHotIndex;
         private RealVector gradient;
+        private int epoch;
     }
 
     private final ActorRef subsampler;
@@ -147,7 +149,12 @@ public class WordEndpoint extends AbstractReapedActor {
                 }
                 WordEmbedding embeddedInput = Word2VecModel.getInstance().createInputEmbedding(input);
                 EncodedSkipGram encodedSkipGram = new EncodedSkipGram(unencodedSkipGram.getExpectedOutput(), embeddedInput);
-                this.sender().tell(new SkipGramReceiver.ProcessEncodedSkipGram(encodedSkipGram, this.self()), this.self());
+                this.sender().tell(SkipGramReceiver.ProcessEncodedSkipGram
+                        .builder()
+                        .skipGram(encodedSkipGram)
+                        .wordEndpointResponsibleForInput(this.self())
+                        .epoch(message.getEpoch())
+                        .build(), this.self());
             }
         }
         this.log().debug(String.format("Successfully encoded %d skip-grams", message.getUnencodedSkipGrams().size()));
@@ -155,7 +162,7 @@ public class WordEndpoint extends AbstractReapedActor {
 
     private void handle(UpdateWeight message) {
         int localOneHotIndex = Vocabulary.getInstance().toLocalOneHotIndex(message.getOneHotIndex());
-        Word2VecModel.getInstance().updateInputWeight(localOneHotIndex, message.getGradient());
+        Word2VecModel.getInstance().updateInputWeight(localOneHotIndex, message.getGradient(), message.getEpoch());
     }
 
     private void handle(TrainingCoordinator.SkipGramChunkTransferred message) {
