@@ -145,7 +145,7 @@ public class WordEndpoint extends AbstractReapedActor {
                 if (!Vocabulary.getInstance().containsLocally(input)) {
                     continue;
                 }
-                WordEmbedding embeddedInput = Word2VecModel.getInstance().createEmbedding(input);
+                WordEmbedding embeddedInput = Word2VecModel.getInstance().createInputEmbedding(input);
                 EncodedSkipGram encodedSkipGram = new EncodedSkipGram(unencodedSkipGram.getExpectedOutput(), embeddedInput);
                 this.sender().tell(new SkipGramReceiver.ProcessEncodedSkipGram(encodedSkipGram, this.self()), this.self());
             }
@@ -154,7 +154,7 @@ public class WordEndpoint extends AbstractReapedActor {
     }
 
     private void handle(UpdateWeight message) {
-        Word2VecModel.getInstance().updateWeight(message.getOneHotIndex(), message.getGradient());
+        Word2VecModel.getInstance().updateInputWeight(message.getOneHotIndex(), message.getGradient());
     }
 
     private void handle(TrainingCoordinator.SkipGramChunkTransferred message) {

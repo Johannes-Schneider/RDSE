@@ -34,7 +34,7 @@ public class UnencodedSkipGram {
             if (!Vocabulary.getInstance().containsLocally(word)) {
                 continue;
             }
-            encodedSkipGrams.add(new EncodedSkipGram(this.expectedOutput, Word2VecModel.getInstance().createEmbedding(word)));
+            encodedSkipGrams.add(new EncodedSkipGram(this.expectedOutput, Word2VecModel.getInstance().createInputEmbedding(word)));
             inputIterator.remove();
         }
         return encodedSkipGrams;

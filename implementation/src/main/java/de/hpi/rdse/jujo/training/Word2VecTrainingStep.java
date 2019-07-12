@@ -14,7 +14,6 @@ public class Word2VecTrainingStep {
 
     private final EncodedSkipGram skipGram;
     private final WordEmbedding input;
-    private final WordEmbedding output;
     private final RealVector outputWordOutputWeights;
     private final Sigmoid sigmoid = new Sigmoid();
     private final int outputLocalIndex;
@@ -26,33 +25,28 @@ public class Word2VecTrainingStep {
     public Word2VecTrainingStep(EncodedSkipGram skipGram) {
         this.skipGram = skipGram;
         this.input = skipGram.getEncodedInput();
-        this.output = this.model.createEmbedding(skipGram.getExpectedOutput());
-        this.outputLocalIndex = this.localIndex(this.output.getOneHotIndex());
+        this.outputLocalIndex = Vocabulary.getInstance().localOneHotIndex(skipGram.getExpectedOutput());
         this.outputWordOutputWeights = this.model.getOutputWeight(this.outputLocalIndex);
-    }
-
-    private int localIndex(long globalIndex) {
-        return (int) (globalIndex - Vocabulary.getInstance().localFirstWordIndex());
     }
 
     public RealVector train() {
         Log.debug(String.format("Start training for expected output word %s", this.skipGram.getExpectedOutput()));
         double sigmoidResult = this.sigmoid.value(this.outputWordOutputWeights.dotProduct(this.input.getWeights())) - 1;
 
-        this.outputGradient = input.getWeights().mapMultiply(sigmoidResult);
-        this.inputGradient = output.getWeights().mapMultiply(sigmoidResult);
+        this.outputGradient = this.input.getWeights().mapMultiply(sigmoidResult);
+        this.inputGradient = this.outputWordOutputWeights.mapMultiply(sigmoidResult);
 
         this.trainNegativeSamples();
 
-        this.model.setOutputWeight(this.outputLocalIndex,
-                this.outputWordOutputWeights.subtract(this.outputGradient.mapMultiply(this.model.getLearningRate())));
+        this.model.updateOutputWeight(this.outputLocalIndex, this.outputGradient);
         return this.inputGradient;
     }
 
     private void trainNegativeSamples() {
-        int[] negativeSamples =
-                Vocabulary.getInstance().drawLocalSamples(this.model.getConfiguration().getNumberOfNegativeSamples(),
-                        this.input.getOneHotIndex(), this.output.getOneHotIndex());
+        int numberOfSamples = this.model.getConfiguration().getNumberOfNegativeSamples();
+        long globalOutputIndex = Vocabulary.getInstance().toGlobalOneHotIndex(this.outputLocalIndex);
+        int[] negativeSamples = Vocabulary.getInstance().drawLocalSamples(numberOfSamples,
+                        this.input.getOneHotIndex(), globalOutputIndex);
 
         for (int localSampleIndex : negativeSamples) {
             RealVector sampledWeight = this.model.getOutputWeight(localSampleIndex);
@@ -60,8 +54,7 @@ public class Word2VecTrainingStep {
             RealVector sampleGradient = this.input.getWeights().mapMultiply(sigmoidResult);
             this.inputGradient = this.inputGradient.add(sampledWeight.mapMultiply(sigmoidResult));
 
-            this.model.setOutputWeight(localSampleIndex,
-                    sampledWeight.subtract(sampleGradient.mapMultiply(this.model.getLearningRate())));
+            this.model.updateOutputWeight(localSampleIndex, sampleGradient);
         }
 
     }

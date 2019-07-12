@@ -58,62 +58,6 @@ public class Word2VecModel {
         Log.info("Done initializing Word2VecModel");
     }
 
-    public void lockInputWeight(int index) {
-        this.inputWeightLocks.putIfAbsent(index, new ReentrantLock());
-        this.inputWeightLocks.get(index).lock();
-    }
-
-    public void unlockInputWeight(int index) {
-        ReentrantLock lock = this.inputWeightLocks.get(index);
-        if (lock == null) {
-            return;
-        }
-
-        lock.unlock();
-    }
-
-    public void lockOutputWeight(int index) {
-        this.outputWeightLocks.putIfAbsent(index, new ReentrantLock());
-        this.outputWeightLocks.get(index).lock();
-    }
-
-    public void unlockOutputWeight(int index) {
-        ReentrantLock lock = this.outputWeightLocks.get(index);
-        if (lock == null) {
-            return;
-        }
-
-        lock.unlock();
-    }
-
-    public void setInputWeight(int index, RealVector newWeight) {
-        try {
-            this.lockInputWeight(index);
-            this.inputWeights[index] = newWeight;
-        } finally {
-            this.unlockInputWeight(index);
-        }
-    }
-
-    public void setOutputWeight(int index, RealVector newWeight) {
-        try {
-            this.lockOutputWeight(index);
-            this.outputWeights[index] = newWeight;
-        } finally {
-            this.unlockOutputWeight(index);
-        }
-    }
-
-    public RealVector getInputWeight(int index) {
-        this.lockInputWeight(index);
-        return this.inputWeights[index];
-    }
-
-    public RealVector getOutputWeight(int index) {
-        this.lockOutputWeight(index);
-        return this.outputWeights[index];
-    }
-
     private RealVector[] createWeights() {
         RealVector[] weights = new RealVector[Vocabulary.getInstance().length()];
         for (int i = 0; i < weights.length; ++i) {
@@ -134,15 +78,26 @@ public class Word2VecModel {
         return weights;
     }
 
-    public WordEmbedding createEmbedding(String word) {
-        long oneHotIndex = Vocabulary.getInstance().oneHotIndex(word);
-        int localOneHotIndex = (int) (oneHotIndex - Vocabulary.getInstance().localFirstWordIndex());
-        try {
-            RealVector inputWeight = this.getInputWeight(localOneHotIndex);
-            return new WordEmbedding(oneHotIndex, inputWeight);
-        } finally {
-            this.unlockInputWeight(localOneHotIndex);
-        }
+    public RealVector getInputWeight(int index) {
+        return this.inputWeights[index];
+    }
+
+    public RealVector getOutputWeight(int index) {
+        return this.outputWeights[index];
+    }
+
+    public WordEmbedding createInputEmbedding(String word) {
+        long globalOneHotIndex = Vocabulary.getInstance().oneHotIndex(word);
+        int localOneHotIndex = Vocabulary.getInstance().toLocalOneHotIndex(globalOneHotIndex);
+        RealVector inputWeight = this.getInputWeight(localOneHotIndex);
+        return new WordEmbedding(globalOneHotIndex, inputWeight);
+    }
+
+    public WordEmbedding createOutputEmbedding(String word) {
+        long globalOneHotIndex = Vocabulary.getInstance().oneHotIndex(word);
+        int localOneHotIndex = Vocabulary.getInstance().toLocalOneHotIndex(globalOneHotIndex);
+        RealVector outputWeight = this.getOutputWeight(localOneHotIndex);
+        return new WordEmbedding(globalOneHotIndex, outputWeight);
     }
 
     public RealVector train(EncodedSkipGram skipGram) {
@@ -150,9 +105,53 @@ public class Word2VecModel {
         return trainingStep.train();
     }
 
-    public void updateWeight(long oneHotIndex, RealVector gradient) {
-        int localIndex = (int) (oneHotIndex - Vocabulary.getInstance().localFirstWordIndex());
-        RealVector inputWeight = this.getInputWeight(localIndex);
-        this.setInputWeight(localIndex, inputWeight.subtract(gradient.mapMultiply(this.learningRate)));
+    public void updateInputWeight(long oneHotIndex, RealVector gradient) {
+        int localIndex = Vocabulary.getInstance().toLocalOneHotIndex(oneHotIndex);
+        try {
+            this.lockInputWeight(localIndex);
+            RealVector inputWeight = this.getInputWeight(localIndex);
+            this.inputWeights[localIndex] = inputWeight.subtract(gradient.mapMultiply(this.learningRate));
+        } finally {
+            this.unlockInputWeight(localIndex);
+        }
+    }
+
+    public void updateOutputWeight(long oneHotIndex, RealVector gradient) {
+        int localIndex = Vocabulary.getInstance().toLocalOneHotIndex(oneHotIndex);
+        try {
+            this.lockOutputWeight(localIndex);
+            RealVector outputWeight = this.getOutputWeight(localIndex);
+            this.outputWeights[localIndex] = outputWeight.subtract(gradient.mapMultiply(this.learningRate));
+        } finally {
+            this.unlockOutputWeight(localIndex);
+        }
+    }
+
+    private void lockInputWeight(int index) {
+        this.inputWeightLocks.putIfAbsent(index, new ReentrantLock());
+        this.inputWeightLocks.get(index).lock();
+    }
+
+    private void unlockInputWeight(int index) {
+        ReentrantLock lock = this.inputWeightLocks.get(index);
+        if (lock == null) {
+            return;
+        }
+
+        lock.unlock();
+    }
+
+    private void lockOutputWeight(int index) {
+        this.outputWeightLocks.putIfAbsent(index, new ReentrantLock());
+        this.outputWeightLocks.get(index).lock();
+    }
+
+    private void unlockOutputWeight(int index) {
+        ReentrantLock lock = this.outputWeightLocks.get(index);
+        if (lock == null) {
+            return;
+        }
+
+        lock.unlock();
     }
 }

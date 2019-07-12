@@ -155,16 +155,28 @@ public class Vocabulary implements Iterable<String> {
     }
 
     public long oneHotIndex(String word) {
+        return this.localOneHotIndex(word) + this.localFirstWordIndex();
+    }
+
+    public int localOneHotIndex(String word) {
         int wordIndex = Arrays.binarySearch(this.words, word);
         if (wordIndex < 0) {
             throw new IllegalArgumentException("The provided word is not part of this local Vocabulary");
         }
 
-        return wordIndex + this.localFirstWordIndex();
+        return wordIndex;
     }
 
     public long localFirstWordIndex() {
         return this.vocabularyPartitions.get(WordEndpointResolver.getInstance().localWordEndpoint().path().root()).firstWordIndex();
+    }
+
+    public int toLocalOneHotIndex(long globalOneHotIndex) {
+        return (int) (globalOneHotIndex - Vocabulary.getInstance().localFirstWordIndex());
+    }
+
+    public long toGlobalOneHotIndex(int localOneHotIndex) {
+        return localOneHotIndex + Vocabulary.getInstance().localFirstWordIndex();
     }
 
     public int[] drawLocalSamples(int numberOfSamples, long... excludedOneHotIndices) {
