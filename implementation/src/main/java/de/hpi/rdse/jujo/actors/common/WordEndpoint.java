@@ -33,6 +33,7 @@ public class WordEndpoint extends AbstractReapedActor {
     public static class WordEndpoints implements Serializable {
         private static final long serialVersionUID = 8070089151352318828L;
         private List<ActorRef> endpoints;
+        private ActorRef master;
     }
 
     @NoArgsConstructor
@@ -48,6 +49,7 @@ public class WordEndpoint extends AbstractReapedActor {
     @NoArgsConstructor @AllArgsConstructor @Builder @Getter
     public static class EncodeSkipGrams implements Serializable {
         private static final long serialVersionUID = 4648091561498065299L;
+        @Builder.Default
         private List<UnencodedSkipGram> unencodedSkipGrams = new ArrayList<>();
         private int epoch;
     }
@@ -85,6 +87,7 @@ public class WordEndpoint extends AbstractReapedActor {
                    .match(TrainingCoordinator.SkipGramChunkTransferred.class, this::handle)
                    .match(EncodeSkipGrams.class, this::handle)
                    .match(UpdateWeight.class, this::handle)
+                   .match(TrainingCoordinator.EndOfTraining.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -96,6 +99,7 @@ public class WordEndpoint extends AbstractReapedActor {
 
         this.log().info("Received all WordEndpoints");
         WordEndpointResolver.getInstance().all().addAll(message.getEndpoints());
+        WordEndpointResolver.getInstance().setMaster(message.getMaster());
         this.subsampler.tell(message, this.sender());
     }
 
@@ -112,12 +116,9 @@ public class WordEndpoint extends AbstractReapedActor {
         this.context().parent().tell(message, this.self());
     }
 
-    private void handle(Subsampler.TakeOwnershipForWordCounts message) {
-        this.subsampler.tell(message, this.sender());
-    }
-
-    private void handle(Subsampler.ConfirmWordOwnershipDistribution message) {
-        this.subsampler.tell(message, this.sender());
+    private void handle(VocabularyCompleted message) {
+        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        this.context().parent().tell(new WorkerCoordinator.VocabularyReadyForTraining(), this.self());
     }
 
     private void handle(VocabularyReceiver.ProcessVocabulary message) {
@@ -126,19 +127,6 @@ public class WordEndpoint extends AbstractReapedActor {
         }
 
         this.vocabularyReceiver.tell(message, this.sender());
-    }
-
-    private void handle(VocabularyCompleted message) {
-        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
-        this.context().parent().tell(new WorkerCoordinator.VocabularyReadyForTraining(), this.self());
-    }
-
-    private void handle(SkipGramReceiver.ProcessUnencodedSkipGrams message) {
-        this.context().parent().tell(message, this.sender());
-    }
-
-    private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {
-        this.context().parent().tell(message, this.sender());
     }
 
     private void handle(EncodeSkipGrams message) {
@@ -173,5 +161,28 @@ public class WordEndpoint extends AbstractReapedActor {
         }
 
         message.getConsumer().tell(message, this.self());
+    }
+
+
+
+    // Forwarding
+    private void handle(Subsampler.TakeOwnershipForWordCounts message) {
+        this.subsampler.tell(message, this.sender());
+    }
+
+    private void handle(Subsampler.ConfirmWordOwnershipDistribution message) {
+        this.subsampler.tell(message, this.sender());
+    }
+
+    private void handle(SkipGramReceiver.ProcessUnencodedSkipGrams message) {
+        this.context().parent().tell(message, this.sender());
+    }
+
+    private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {
+        this.context().parent().tell(message, this.sender());
+    }
+
+    private void handle(TrainingCoordinator.EndOfTraining message) {
+        this.context().parent().tell(message, this.sender());
     }
 }

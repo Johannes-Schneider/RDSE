@@ -26,9 +26,9 @@ public class WordEndpointDistributor extends AbstractReapedActor {
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
-                .match(Shepherd.SlaveNodeRegistrationMessage.class, this::handle)
-                .matchAny(this::handleAny)
-                .build();
+                   .match(Shepherd.SlaveNodeRegistrationMessage.class, this::handle)
+                   .matchAny(this::handleAny)
+                   .build();
     }
 
     private void handle(Shepherd.SlaveNodeRegistrationMessage message) {
@@ -50,8 +50,13 @@ public class WordEndpointDistributor extends AbstractReapedActor {
     }
 
     private void distributeWordEndpoints() {
-        for (ActorRef wordEndpoint : wordEndpoints) {
-            wordEndpoint.tell(WordEndpoint.WordEndpoints.builder().endpoints(wordEndpoints).build(), this.self());
+        WordEndpoint.WordEndpoints message = WordEndpoint.WordEndpoints
+                .builder()
+                .endpoints(this.wordEndpoints)
+                .master(this.context().parent())
+                .build();
+        for (ActorRef wordEndpoint : this.wordEndpoints) {
+            wordEndpoint.tell(message, this.self());
         }
     }
 

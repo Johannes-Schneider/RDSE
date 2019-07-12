@@ -97,6 +97,10 @@ public class Vocabulary implements Iterable<String> {
         return this.words.length;
     }
 
+    public String get(int index) {
+        return this.words[index];
+    }
+
     @Override @NotNull
     public Iterator<String> iterator() {
         return Arrays.stream(this.words).iterator();

@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Path;
 
 public class FilePartitioner {
 
@@ -20,8 +21,8 @@ public class FilePartitioner {
     private final long chunkSize;
     private long currentFileOffset = 0;
 
-    public FilePartitioner(String filePath, int numberOfPartitions) {
-        this.file = new File(filePath);
+    public FilePartitioner(Path filePath, int numberOfPartitions) {
+        this.file = filePath.toFile();
         this.fileStream = createFileStream();
         this.chunkSize = this.file.length() / numberOfPartitions;
     }

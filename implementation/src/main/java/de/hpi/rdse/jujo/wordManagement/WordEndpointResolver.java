@@ -3,6 +3,8 @@ package de.hpi.rdse.jujo.wordManagement;
 import akka.actor.ActorRef;
 import akka.actor.RootActorPath;
 import com.google.common.hash.Hashing;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -46,6 +48,8 @@ public class WordEndpointResolver {
 
     private final List<ActorRef> wordEndpoints = new ArrayList<>();
     private final ActorRef localWordEndpoint;
+    @Getter @Setter
+    private ActorRef master = ActorRef.noSender();
 
     private WordEndpointResolver(ActorRef localWordEndpoint) {
         this.localWordEndpoint = localWordEndpoint;

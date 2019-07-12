@@ -3,12 +3,15 @@ package de.hpi.rdse.jujo.actors.common.training;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.actor.RootActorPath;
 import akka.actor.Terminated;
 import akka.routing.ActorRefRoutee;
+import akka.routing.Broadcast;
 import akka.routing.RoundRobinRoutingLogic;
 import akka.routing.Routee;
 import akka.routing.Router;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
+import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,9 +19,11 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 
 public class TrainingCoordinator extends AbstractReapedActor {
 
@@ -45,16 +50,26 @@ public class TrainingCoordinator extends AbstractReapedActor {
         private ActorRef consumer;
     }
 
+    @NoArgsConstructor @AllArgsConstructor @Getter
+    public static class EndOfTraining implements Serializable {
+        private static final long serialVersionUID = -8558419590883496767L;
+        private ActorRef producer;
+    }
+
     private ActorRef skipGramDistributor;
     private boolean trainingHasStarted = false;
-    private final boolean isTrainingFinished = false;
+    private boolean isTrainingFinished = false;
     private Router router;
     private final int numberOfLocalWorkers;
     private final Queue<SkipGramReceiver.ProcessEncodedSkipGram> trainingBuffer = new LinkedList<>();
+    private final Set<RootActorPath> activeSkipGramProducers = new HashSet<>();
 
 
     private TrainingCoordinator(int numberOfLocalWorkers) {
         this.numberOfLocalWorkers = numberOfLocalWorkers;
+        for (ActorRef endpoint : WordEndpointResolver.getInstance().all()) {
+            this.activeSkipGramProducers.add(endpoint.path().root());
+        }
     }
 
     @Override
@@ -65,6 +80,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
                    .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
                    .match(SkipGramChunkTransferred.class, this::handle)
                    .match(Terminated.class, this::handle)
+                   .match(EndOfTraining.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -133,13 +149,32 @@ public class TrainingCoordinator extends AbstractReapedActor {
         this.log().info("Skip gram receiver terminated");
 
         this.router = this.router.removeRoutee(message.actor());
-        if (this.isTrainingFinished) {
-            if (this.router.routees().size() < 1) {
-                this.log().info("Training has finished and all skipGramReceivers terminated");
-                //TODO: Start weight delivery to master
-            }
+        if (!this.isTrainingFinished) {
+            this.router.addRoutee(this.createWorker());
             return;
         }
-        this.router.addRoutee(this.createWorker());
+        if (!this.router.routees().isEmpty()) {
+            return;
+        }
+        this.initializeResultTransfer();
+    }
+
+    private void initializeResultTransfer() {
+
+    }
+
+    private void handle(EndOfTraining message) {
+        this.activeSkipGramProducers.remove(message.getProducer().path().root());
+        this.log().info(String.format("End of training received from %s. Waiting for %d more producers to finish",
+                message.getProducer().path().root(), this.activeSkipGramProducers.size()));
+
+        if (this.activeSkipGramProducers.isEmpty()) {
+            this.finalizeTraining();
+        }
+    }
+
+    private void finalizeTraining() {
+        this.isTrainingFinished = true;
+        this.router.route(new Broadcast(PoisonPill.getInstance()), ActorRef.noSender());
     }
 }

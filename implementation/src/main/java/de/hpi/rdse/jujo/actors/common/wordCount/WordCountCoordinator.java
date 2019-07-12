@@ -5,6 +5,7 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.routing.ActorRefRoutee;
+import akka.routing.Broadcast;
 import akka.routing.RoundRobinRoutingLogic;
 import akka.routing.Routee;
 import akka.routing.Router;
@@ -84,9 +85,7 @@ public class WordCountCoordinator extends AbstractReapedActor {
         String decodedChunk = this.corpusReassembler.decodeRemainingCorpus();
         this.router.route(new WordCountWorker.CountWords(decodedChunk), this.self());
         this.wordCountFinished = true;
-        for (int i = 0; i < this.router.routees().size(); i++) {
-            this.router.route(PoisonPill.getInstance(), ActorRef.noSender());
-        }
+        this.router.route(new Broadcast(PoisonPill.getInstance()), ActorRef.noSender());
     }
 
     private void handle(WordsCounted message) {

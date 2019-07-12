@@ -7,6 +7,8 @@ import org.apache.commons.math3.linear.RealVector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -150,5 +152,9 @@ public class Word2VecModel {
         float delta =
                 (this.learningRate - configuration.getMinimumLearningRate()) / (configuration.getNumberOfEpochs() - 1);
         return this.learningRate - (epoch * delta);
+    }
+
+    public Iterator<CWordEmbedding> getResults() {
+        return new Word2VecModelIterator();
     }
 }

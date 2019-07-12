@@ -62,6 +62,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
                 .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
                 .match(SkipGramReceiver.ProcessUnencodedSkipGrams.class, this::handle)
                 .match(TrainingCoordinator.SkipGramChunkTransferred.class, this::handle)
+                .match(TrainingCoordinator.EndOfTraining.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
     }
@@ -101,6 +102,8 @@ public class WorkerCoordinator extends AbstractReapedActor {
         this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props(this.maxNumberOfLocalWorkers));
     }
 
+    // Forwarding
+
     private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {
         this.trainingCoordinator.tell(message, this.sender());
     }
@@ -112,4 +115,9 @@ public class WorkerCoordinator extends AbstractReapedActor {
     private void handle(TrainingCoordinator.SkipGramChunkTransferred message) {
         this.trainingCoordinator.tell(message, this.sender());
     }
+
+    private void handle(TrainingCoordinator.EndOfTraining message) {
+        this.trainingCoordinator.tell(message, this.sender());
+    }
+
 }

@@ -17,25 +17,25 @@ import de.hpi.rdse.jujo.fileHandling.FilePartition;
 import de.hpi.rdse.jujo.fileHandling.FilePartitionIterator;
 import de.hpi.rdse.jujo.fileHandling.FilePartitioner;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 public class CorpusDistributor extends AbstractReapedActor {
 
-    public static Props props(int expectedNumberOfSlaves, String corpusFilePath) {
+    public static Props props(int expectedNumberOfSlaves, Path corpusFilePath) {
         return Props.create(CorpusDistributor.class,
                 () -> new CorpusDistributor(expectedNumberOfSlaves, corpusFilePath));
     }
 
-    private final String corpusFilePath;
+    private final Path corpusFilePath;
     private final Map<RootActorPath, Source<ByteString, NotUsed>> corpusSources = new HashMap<>();
     private final FilePartitioner filePartitioner;
     private final Materializer materializer;
 
-    private CorpusDistributor(int expectedNumberOfSlaves, String corpusFilePath) {
+    private CorpusDistributor(int expectedNumberOfSlaves, Path corpusFilePath) {
         this.corpusFilePath = corpusFilePath;
         this.materializer = ActorMaterializer.create(this.context().system());
         this.filePartitioner = new FilePartitioner(corpusFilePath, expectedNumberOfSlaves);
@@ -63,7 +63,8 @@ public class CorpusDistributor extends AbstractReapedActor {
     private Source<ByteString, NotUsed> createCorpusSource() {
         FilePartition filePartition = this.filePartitioner.getNextPartition();
         try {
-            FilePartitionIterator filePartitionIterator = new FilePartitionIterator(filePartition, new File(this.corpusFilePath));
+            FilePartitionIterator filePartitionIterator = new FilePartitionIterator(filePartition,
+                    this.corpusFilePath.toFile());
             return Source.<ByteString>fromIterator(() -> filePartitionIterator);
         } catch (IOException e) {
             Log.error("Unable to create iterator for FilePartition.", e);

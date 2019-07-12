@@ -12,7 +12,7 @@ abstract class CommandBase {
     @Parameter(names = {"-h", "--host"}, description = "host address of this system", required = true)
     String host;
 
-    @Parameter(names = {"-w", "--workers"}, description = "number of local workers") final
+    @Parameter(names = {"-w", "--workers"}, description = "number of local workers")
     int numberOfWorkers = DEFAULT_NUMBER_OF_WORKERS;
 
     @Parameter(names = {"-t", "--temporary"}, description = "temporary working directory", validateValueWith =

@@ -7,25 +7,26 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
 public class FilePartitionerTest {
 
-    private String createTestFile(int numberOfBytes) throws IOException {
+    private Path createTestFile(int numberOfBytes) throws IOException {
 
         String fileContent = TestUtilities.generateASCIIString(numberOfBytes);
 
         UUID fileName = UUID.randomUUID();
         File tmpFile = File.createTempFile(fileName.toString(), "");
         Files.write(tmpFile.toPath(), fileContent.getBytes());
-        return tmpFile.getPath();
+        return tmpFile.toPath();
     }
 
     @Test
     public void testPartitioningForEvenNumberOfBytesTwoPartitions() throws IOException {
-        String testFilePath = createTestFile(100);
+        Path testFilePath = createTestFile(100);
         FilePartitioner partitioner = new FilePartitioner(testFilePath, 2);
         FilePartition firstPartition = partitioner.getNextPartition();
         FilePartition secondPartition = partitioner.getNextPartition();
@@ -38,14 +39,14 @@ public class FilePartitionerTest {
         assertThat(secondPartition.getReadOffset()).isEqualTo(firstPartition.getReadLength());
         assertThat(secondPartition.getReadOffset() + secondPartition.getReadLength()).isEqualTo(100);
         // Whitespace as delimiter
-        FileInputStream testFileInputStream = new FileInputStream(testFilePath);
+        FileInputStream testFileInputStream = new FileInputStream(testFilePath.toFile());
         testFileInputStream.getChannel().position(secondPartition.getReadOffset());
         assertThat(testFileInputStream.read()).isEqualTo((byte) 0x20);
     }
 
     @Test
     public void testPartitioningForOddNumberOfBytesTwoPartitions() throws IOException {
-        String testFilePath = createTestFile(133);
+        Path testFilePath = createTestFile(133);
         FilePartitioner partitioner = new FilePartitioner(testFilePath, 2);
         FilePartition firstPartition = partitioner.getNextPartition();
         FilePartition secondPartition = partitioner.getNextPartition();
@@ -58,14 +59,14 @@ public class FilePartitionerTest {
         assertThat(secondPartition.getReadOffset()).isEqualTo(firstPartition.getReadLength());
         assertThat(secondPartition.getReadOffset() + secondPartition.getReadLength()).isEqualTo(133);
         // Whitespace as delimiter
-        FileInputStream testFileInputStream = new FileInputStream(testFilePath);
+        FileInputStream testFileInputStream = new FileInputStream(testFilePath.toFile());
         testFileInputStream.getChannel().position(secondPartition.getReadOffset());
         assertThat(testFileInputStream.read()).isEqualTo((byte) 0x20);
     }
 
     @Test
     public void testPartitioningForEvenNumberOfBytesThreePartitions() throws IOException {
-        String testFilePath = createTestFile(100);
+        Path testFilePath = createTestFile(100);
         FilePartitioner partitioner = new FilePartitioner(testFilePath, 3);
         FilePartition firstPartition = partitioner.getNextPartition();
         FilePartition secondPartition = partitioner.getNextPartition();
@@ -81,7 +82,7 @@ public class FilePartitionerTest {
         assertThat(thirdPartition.getReadOffset()).isEqualTo(secondPartition.getReadOffset() + secondPartition.getReadLength());
         assertThat(thirdPartition.getReadOffset() + thirdPartition.getReadLength()).isEqualTo(100);
         // Whitespace as delimiter
-        FileInputStream testFileInputStream = new FileInputStream(testFilePath);
+        FileInputStream testFileInputStream = new FileInputStream(testFilePath.toFile());
         testFileInputStream.getChannel().position(secondPartition.getReadOffset());
         assertThat(testFileInputStream.read()).isEqualTo((byte) 0x20);
         testFileInputStream.getChannel().position(thirdPartition.getReadOffset());
@@ -90,7 +91,7 @@ public class FilePartitionerTest {
 
     @Test
     public void testPartitioningForOddNumberOfBytesThreePartitions() throws IOException {
-        String testFilePath = createTestFile(133);
+        Path testFilePath = createTestFile(133);
         FilePartitioner partitioner = new FilePartitioner(testFilePath, 3);
         FilePartition firstPartition = partitioner.getNextPartition();
         FilePartition secondPartition = partitioner.getNextPartition();
@@ -106,7 +107,7 @@ public class FilePartitionerTest {
         assertThat(thirdPartition.getReadOffset()).isEqualTo(secondPartition.getReadOffset() + secondPartition.getReadLength());
         assertThat(thirdPartition.getReadOffset() + thirdPartition.getReadLength()).isEqualTo(133);
         // Whitespace as delimiter
-        FileInputStream testFileInputStream = new FileInputStream(testFilePath);
+        FileInputStream testFileInputStream = new FileInputStream(testFilePath.toFile());
         testFileInputStream.getChannel().position(secondPartition.getReadOffset());
         assertThat(testFileInputStream.read()).isEqualTo((byte) 0x20);
         testFileInputStream.getChannel().position(thirdPartition.getReadOffset());
