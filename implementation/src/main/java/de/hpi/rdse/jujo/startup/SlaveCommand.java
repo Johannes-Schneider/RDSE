@@ -10,12 +10,6 @@ public class SlaveCommand extends CommandBase {
 
     public static final int DEFAULT_PORT = 7787;
 
-    @Parameter(names = {"-h", "--host"}, description = "host of this system")
-    String host;
-
-    @Parameter(names = {"--master-host"}, description = "host of the master system")
+    @Parameter(names = {"--master-host"}, description = "host of the master system", required = true)
     String masterHost;
-
-    @Parameter(names = {"-t", "--temporary"}, description = "temporary working directory", validateValueWith = DirectoryValidator.class)
-    String temporaryWorkingDirectory;
 }
