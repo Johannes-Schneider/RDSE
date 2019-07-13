@@ -1,10 +1,13 @@
 package de.hpi.rdse.jujo.training;
 
 import akka.actor.RootActorPath;
+import de.hpi.rdse.jujo.fileHandling.FilePartitioner;
 import de.hpi.rdse.jujo.fileHandling.FileWordIterator;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 import lombok.Getter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -14,6 +17,9 @@ import java.util.Iterator;
 import java.util.List;
 
 public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
+
+    private static final Logger Log = LogManager.getLogger(SkipGramProducer.class);
+
 
     private final RootActorPath skipGramReceiver;
     private final FileWordIterator fileIterator;
@@ -69,6 +75,7 @@ public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
             return;
         }
         this.currentEpoch++;
+        Log.info(String.format("Starting epoch #%d for consumer %s", this.currentEpoch, this.skipGramReceiver));
         this.fileIterator.reset();
     }
 

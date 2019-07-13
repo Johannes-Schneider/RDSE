@@ -65,6 +65,7 @@ public class ResultPartitionReceiver extends AbstractReapedActor {
 
     private void handleResult(CWordEmbedding embedding) throws IOException {
         writer.write(embedding.toString());
+        writer.newLine();
     }
 
     private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage, RootActorPath sender) {

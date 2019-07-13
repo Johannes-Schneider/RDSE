@@ -122,7 +122,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
 
     private void handle(SkipGramsDistributed message) {
         this.log().info("Successfully distributed all skip-grams");
-        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        // this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
     private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {
@@ -160,7 +160,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private void initializeResultTransfer() {
-
+        this.context().actorOf(ResultPartitionSender.props());
     }
 
     private void handle(EndOfTraining message) {

@@ -56,7 +56,7 @@ public class FileWordIterator implements Iterator<String[]> {
     private int nextReadSize() {
         try {
             int nextReadSize = (int) Math.min(chunkSize(), this.fileLength - this.inputStream.getChannel().position());
-            Log.info(String.format("FileWordIterator's next read size is %d", nextReadSize));
+            Log.debug(String.format("FileWordIterator's next read size is %d", nextReadSize));
             return nextReadSize;
         } catch (IOException e) {
             Log.error("Unable to calculate next element length for network transfer.", e);

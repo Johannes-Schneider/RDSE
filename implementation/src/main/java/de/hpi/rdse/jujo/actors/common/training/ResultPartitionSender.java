@@ -38,10 +38,15 @@ public class ResultPartitionSender extends AbstractReapedActor {
 
     private void transferResults() {
         Source<CWordEmbedding, NotUsed> source = createResultPartitionSource();
-        CompletionStage<SourceRef<CWordEmbedding>> sourceRef = source.runWith(StreamRefs.sourceRef(), this.materializer);
+        CompletionStage<SourceRef<CWordEmbedding>> sourceRef = source.runWith(StreamRefs.sourceRef(),
+                this.materializer).whenComplete(this::handleCompletion);
 
         Patterns.pipe(sourceRef.thenApply(ResultPartitionReceiver.ProcessResults::new),
                 this.context().dispatcher()).to(WordEndpointResolver.getInstance().getMaster());
+    }
+
+    private void handleCompletion(SourceRef sourceRef, Throwable throwable) {
+        this.log().info("Transferred results");
     }
 
     private Source<CWordEmbedding, NotUsed> createResultPartitionSource() {

@@ -57,7 +57,7 @@ public class SkipGramReceiver extends AbstractReapedActor {
             return;
         }
         if (!Vocabulary.getInstance().containsLocally(message.getSkipGram().getExpectedOutput())) {
-            this.log().info(String.format("Discarding sub-sampled encoded skip-gram (expected output = \"%s\"",
+            this.log().debug(String.format("Discarding sub-sampled encoded skip-gram (expected output = \"%s\"",
                     message.getSkipGram().getExpectedOutput()));
             return;
         }

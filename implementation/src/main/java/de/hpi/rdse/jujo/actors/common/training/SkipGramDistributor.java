@@ -54,7 +54,7 @@ public class SkipGramDistributor extends AbstractReapedActor {
     }
 
     private void createAndDistributeSkipGrams(ActorRef skipGramReceiver) {
-        this.log().info(String.format("Currently producing skip-grams for %d producers",
+        this.log().info(String.format("Currently producing skip-grams for %d consumers",
                 this.skipGramProducers.values().stream().filter(SkipGramProducer::hasNext).map(producer -> 1L).mapToLong(Long::longValue).sum()));
 
         SkipGramProducer responsibleProducer = this.skipGramProducers.get(skipGramReceiver.path().root());
