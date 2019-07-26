@@ -3,6 +3,8 @@ package de.hpi.rdse.jujo.startup;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import de.hpi.rdse.jujo.startup.validators.FileValidator;
+import de.hpi.rdse.jujo.startup.validators.ValueGreaterThanZeroValidator;
 import lombok.Getter;
 
 import java.nio.file.Path;
@@ -37,19 +39,24 @@ public class MasterCommand extends CommandBase {
     @Parameter(names = {"-d", "--dimensions"}, description = "dimensionality of resulting word embeddings")
     int dimensions = DEFAULT_DIMENSIONS;
 
-    @Parameter(names = {"--window-size"}, description = "size of window for building skip-grams")
+    @Parameter(names = {"--window-size"}, description = "size of window for building skip-grams", validateValueWith =
+            ValueGreaterThanZeroValidator.class)
     int windowSize = DEFAULT_WINDOW_SIZE;
 
-    @Parameter(names = {"-e", "--epochs"}, description = "number of epochs to train")
+    @Parameter(names = {"-e", "--epochs"}, description = "number of epochs to train", validateValueWith =
+            ValueGreaterThanZeroValidator.class)
     int numberOfEpochs = DEFAULT_NUMBER_OF_EPOCHS;
 
-    @Parameter(names = {"-l", "--learning-rate"}, description = "initial learning rate")
+    @Parameter(names = {"-l", "--learning-rate"}, description = "initial learning rate", validateValueWith =
+            ValueGreaterThanZeroValidator.class)
     float learningRate = DEFAULT_LEARNING_RATE;
 
-    @Parameter(names = {"--min-learning-rate"}, description = "minimum learning rate")
+    @Parameter(names = {"--min-learning-rate"}, description = "minimum learning rate", validateValueWith =
+            ValueGreaterThanZeroValidator.class)
     float minimumLearningRate = DEFAULT_MINIMUM_LEARNING_RATE;
 
-    @Parameter(names = {"-n", "--negative-samples"}, description = "number of negative samples")
+    @Parameter(names = {"-n", "--negative-samples"}, description = "number of negative samples", validateValueWith =
+            ValueGreaterThanZeroValidator.class)
     int numberOfNegativeSamples = DEFAULT_NUMBER_OF_NEGATIVE_SAMPLES;
 
     @Parameter(names = {"-o", "--output"}, description = "path and name to file where result should be stored",

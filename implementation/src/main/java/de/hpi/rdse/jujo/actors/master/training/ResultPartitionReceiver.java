@@ -3,12 +3,14 @@ package de.hpi.rdse.jujo.actors.master.training;
 import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.RootActorPath;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.master.Master;
 import de.hpi.rdse.jujo.training.CWordEmbedding;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 import lombok.AllArgsConstructor;
@@ -59,7 +61,7 @@ public class ResultPartitionReceiver extends AbstractReapedActor {
     private void handle(ProcessResults message) {
 
         message.getSource().getSource()
-               .watchTermination((notUsed, stage) -> this.handleTermination(notUsed, stage, this.sender().path().root()))
+               .watchTermination((notUsed, stage) -> this.handleTermination(notUsed, stage, this.sender()))
                .runForeach(this::handleResult, this.materializer);
     }
 
@@ -68,10 +70,14 @@ public class ResultPartitionReceiver extends AbstractReapedActor {
         writer.newLine();
     }
 
-    private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage, RootActorPath sender) {
-        stage.thenApply(x -> {
-
-            return x;
+    private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage, ActorRef sender) {
+        stage.whenComplete((done, throwable) -> {
+            this.log().info(String.format("Received all results from %s", sender.path().root()));
+            this.activeNodes.remove(sender.path().root());
+            sender.tell(PoisonPill.getInstance(), ActorRef.noSender());
+            if (this.activeNodes.isEmpty()) {
+                this.context().parent().tell(new Master.AllResultsReceived(), this.self());
+            }
         });
         return notUsed;
     }

@@ -4,8 +4,10 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Address;
 import akka.actor.Cancellable;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Scheduler;
+import akka.actor.Terminated;
 import akka.remote.DisassociatedEvent;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.master.Shepherd;
@@ -44,16 +46,18 @@ public class Sheep extends AbstractReapedActor {
 
     private Sheep(ActorRef slave) {
         this.slave = slave;
+        this.context().watch(this.slave);
     }
 
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
-                .match(RegisterAtShepherd.class, this::handle)
-                .match(AcknowledgeRegistration.class, this::handle)
-                .match(DisassociatedEvent.class, this::handle)
-                .matchAny(this::handleAny)
-                .build();
+                   .match(RegisterAtShepherd.class, this::handle)
+                   .match(AcknowledgeRegistration.class, this::handle)
+                   .match(DisassociatedEvent.class, this::handle)
+                   .match(Terminated.class, this::handle)
+                   .matchAny(this::handleAny)
+                   .build();
     }
 
     private void handle(RegisterAtShepherd message) {
@@ -61,7 +65,7 @@ public class Sheep extends AbstractReapedActor {
 
         // Find the shepherd actor in the remote actor system
         final ActorSelection selection = this.getContext().getSystem()
-                .actorSelection(String.format("%s/user/%s", message.shepherdAddress, Shepherd.DEFAULT_NAME));
+                                             .actorSelection(String.format("%s/user/%s", message.shepherdAddress, Shepherd.DEFAULT_NAME));
 
         // Register the local actor system by periodically sending subscription messages (until an ack was received)
         final Scheduler scheduler = this.getContext().getSystem().scheduler();
@@ -84,6 +88,13 @@ public class Sheep extends AbstractReapedActor {
         if (this.connectSchedule != null) {
             this.connectSchedule.cancel();
             this.connectSchedule = null;
+        }
+    }
+
+    private void handle(Terminated message) {
+        this.context().unwatch(message.actor());
+        if (message.actor() == this.slave) {
+            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
     }
 

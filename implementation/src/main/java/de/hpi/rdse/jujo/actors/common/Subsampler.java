@@ -151,9 +151,7 @@ public class Subsampler extends AbstractReapedActor {
     private void handle(AckOwnership message) {
         this.unacknowledgedTakeOverOwnerships.remove(message.getMessageId());
         if (this.unacknowledgedTakeOverOwnerships.isEmpty()) {
-            for (ActorRef wordEndpoint : WordEndpointResolver.getInstance().all()) {
-                wordEndpoint.tell(new ConfirmWordOwnershipDistribution(this.initialCorpusPartitionSize), this.self());
-            }
+            WordEndpointResolver.getInstance().broadcast(new ConfirmWordOwnershipDistribution(this.initialCorpusPartitionSize), this.self());
         }
     }
 

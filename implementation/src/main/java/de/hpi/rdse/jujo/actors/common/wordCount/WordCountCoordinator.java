@@ -97,10 +97,12 @@ public class WordCountCoordinator extends AbstractReapedActor {
     }
 
     private void handle(Terminated message) {
+        this.context().unwatch(message.actor());
         this.router = this.router.removeRoutee(message.actor());
         if (this.wordCountFinished) {
             if (this.router.routees().size() < 1) {
                 this.supervisor.tell(new Subsampler.WordsCounted(this.wordCounts), this.self());
+                this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
             }
             return;
         }

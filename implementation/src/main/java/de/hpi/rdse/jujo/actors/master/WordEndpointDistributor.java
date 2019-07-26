@@ -2,6 +2,7 @@ package de.hpi.rdse.jujo.actors.master;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WordEndpoint;
@@ -46,6 +47,7 @@ public class WordEndpointDistributor extends AbstractReapedActor {
         this.wordEndpoints.add(this.sender());
         if (this.expectedNumberOfWordEndpoints == this.wordEndpoints.size()) {
             this.distributeWordEndpoints();
+            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
     }
 

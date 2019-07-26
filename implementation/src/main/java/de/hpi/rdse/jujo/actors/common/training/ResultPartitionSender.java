@@ -39,15 +39,11 @@ public class ResultPartitionSender extends AbstractReapedActor {
     private void transferResults() {
         Source<CWordEmbedding, NotUsed> source = createResultPartitionSource();
         CompletionStage<SourceRef<CWordEmbedding>> sourceRef = source.runWith(StreamRefs.sourceRef(),
-                this.materializer).whenComplete(this::handleCompletion);
-
+                this.materializer);
         Patterns.pipe(sourceRef.thenApply(ResultPartitionReceiver.ProcessResults::new),
-                this.context().dispatcher()).to(WordEndpointResolver.getInstance().getMaster());
+                this.context().dispatcher()).to(WordEndpointResolver.getInstance().getMaster(), this.self());
     }
 
-    private void handleCompletion(SourceRef sourceRef, Throwable throwable) {
-        this.log().info("Transferred results");
-    }
 
     private Source<CWordEmbedding, NotUsed> createResultPartitionSource() {
         return Source.<CWordEmbedding>fromIterator(Word2VecModel.getInstance()::getResults);

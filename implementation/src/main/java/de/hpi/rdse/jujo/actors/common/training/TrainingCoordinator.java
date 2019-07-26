@@ -11,6 +11,8 @@ import akka.routing.RoundRobinRoutingLogic;
 import akka.routing.Routee;
 import akka.routing.Router;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.common.Subsampler;
+import de.hpi.rdse.jujo.actors.common.WordEndpoint;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -57,9 +59,10 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private ActorRef skipGramDistributor;
+    private ActorRef resultPartitionSender;
     private boolean trainingHasStarted = false;
     private boolean isTrainingFinished = false;
-    private Router router;
+    private Router skipGramReceiverRouter;
     private final int numberOfLocalWorkers;
     private final Queue<SkipGramReceiver.ProcessEncodedSkipGram> trainingBuffer = new LinkedList<>();
     private final Set<RootActorPath> activeSkipGramProducers = new HashSet<>();
@@ -87,7 +90,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
 
     private void handle(StartTraining message) {
         this.log().info("Start training!");
-        this.router = this.createRoundRobinRouter(this.numberOfLocalWorkers);
+        this.skipGramReceiverRouter = this.createRoundRobinRouter(this.numberOfLocalWorkers);
         this.initializeAndStartSkipGramDistribution(message.getLocalCorpusPartitionPath());
         this.trainingHasStarted = true;
         this.processTrainingBuffer();
@@ -95,7 +98,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
 
     private void processTrainingBuffer() {
         while (!this.trainingBuffer.isEmpty()) {
-            this.router.route(this.trainingBuffer.poll(), this.self());
+            this.skipGramReceiverRouter.route(this.trainingBuffer.poll(), this.self());
         }
     }
 
@@ -122,7 +125,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
 
     private void handle(SkipGramsDistributed message) {
         this.log().info("Successfully distributed all skip-grams");
-        // this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
     private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {
@@ -137,7 +140,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
         this.log().debug(String.format("Processing encoded skip-gram (expected output = \"%s\") from %s",
                 message.getSkipGram().getExpectedOutput(), this.sender().path()));
 
-        this.router.route(message, this.sender());
+        this.skipGramReceiverRouter.route(message, this.sender());
     }
 
     private void handle(SkipGramChunkTransferred message) {
@@ -146,21 +149,30 @@ public class TrainingCoordinator extends AbstractReapedActor {
     }
 
     private void handle(Terminated message) {
-        this.log().info("Skip gram receiver terminated");
+        this.context().unwatch(message.actor());
 
-        this.router = this.router.removeRoutee(message.actor());
-        if (!this.isTrainingFinished) {
-            this.router.addRoutee(this.createWorker());
+        if (message.actor() == this.resultPartitionSender) {
+            this.log().info("Result transfer completed. About to unsubscribe from WordEndpoints.");
+            WordEndpointResolver.getInstance().broadcast(new WordEndpoint.Unsubscribe(), this.self());
+            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
             return;
         }
-        if (!this.router.routees().isEmpty()) {
+
+        this.log().info("Skip gram receiver terminated");
+        this.skipGramReceiverRouter = this.skipGramReceiverRouter.removeRoutee(message.actor());
+        if (!this.isTrainingFinished) {
+            this.skipGramReceiverRouter.addRoutee(this.createWorker());
+            return;
+        }
+        if (!this.skipGramReceiverRouter.routees().isEmpty()) {
             return;
         }
         this.initializeResultTransfer();
     }
 
     private void initializeResultTransfer() {
-        this.context().actorOf(ResultPartitionSender.props());
+        this.resultPartitionSender = this.context().actorOf(ResultPartitionSender.props());
+        this.context().watch(this.resultPartitionSender);
     }
 
     private void handle(EndOfTraining message) {
@@ -175,6 +187,6 @@ public class TrainingCoordinator extends AbstractReapedActor {
 
     private void finalizeTraining() {
         this.isTrainingFinished = true;
-        this.router.route(new Broadcast(PoisonPill.getInstance()), ActorRef.noSender());
+        this.skipGramReceiverRouter.route(new Broadcast(PoisonPill.getInstance()), ActorRef.noSender());
     }
 }

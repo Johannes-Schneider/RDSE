@@ -62,14 +62,13 @@ public class Reaper extends AbstractLoggingActor {
     }
 
     private void handle(Terminated message) {
+        this.context().unwatch(message.actor());
         if (this.watchees.remove(this.sender())) {
             this.log().debug("Reaping {}.", this.sender());
             if (this.watchees.isEmpty()) {
                 this.log().info("Every local actor has been reaped. Terminating the actor system...");
                 this.getContext().getSystem().terminate();
             }
-        } else {
-            this.log().error("Got termination message startPassword unwatched {}.", this.sender());
         }
     }
 }

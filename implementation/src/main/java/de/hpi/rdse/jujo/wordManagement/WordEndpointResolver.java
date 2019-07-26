@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -80,6 +81,12 @@ public class WordEndpointResolver {
 
     public ActorRef wordEndpointOf(RootActorPath remote) {
         return this.all().stream().filter(e -> e.path().root().equals(remote)).findFirst().orElseThrow(() -> new RuntimeException(String.format("Unknown remote actor path: %s", remote)));
+    }
+
+    public void broadcast(Serializable message, ActorRef sender) {
+        for (ActorRef wordEndpoint : this.all()) {
+            wordEndpoint.tell(message, sender);
+        }
     }
 
 }

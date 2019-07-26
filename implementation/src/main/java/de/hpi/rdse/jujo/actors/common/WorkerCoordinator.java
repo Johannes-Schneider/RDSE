@@ -1,7 +1,9 @@
 package de.hpi.rdse.jujo.actors.common;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.util.ByteString;
 import de.hpi.rdse.jujo.actors.common.training.SkipGramReceiver;
 import de.hpi.rdse.jujo.actors.common.training.TrainingCoordinator;
@@ -37,6 +39,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
         private static final long serialVersionUID = -880424032423441020L;
     }
 
+
     private final ActorRef wordEndpoint;
     private ActorRef wordCountCoordinator;
     private final ActorRef corpusReceiver;
@@ -46,8 +49,8 @@ public class WorkerCoordinator extends AbstractReapedActor {
 
     private WorkerCoordinator(String tempWorkingDir, int maxNumberOfLocalWorkers) {
         this.wordEndpoint = this.context().actorOf(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
-        this.corpusReceiver = this.context().actorOf(
-                CorpusReceiver.props(tempWorkingDir));
+        this.context().watch(this.wordEndpoint);
+        this.corpusReceiver = this.context().actorOf(CorpusReceiver.props(tempWorkingDir));
         this.maxNumberOfLocalWorkers = maxNumberOfLocalWorkers;
     }
 
@@ -63,6 +66,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
                 .match(SkipGramReceiver.ProcessUnencodedSkipGrams.class, this::handle)
                 .match(TrainingCoordinator.SkipGramChunkTransferred.class, this::handle)
                 .match(TrainingCoordinator.EndOfTraining.class, this::handle)
+                .match(Terminated.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
     }
@@ -80,6 +84,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
         this.localCorpusPartitionPath = message.localCorpusPartitionPath;
         this.initializeWordCountCoordinator();
         this.wordCountCoordinator.tell(message, this.self());
+        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
     private void initializeWordCountCoordinator() {
@@ -100,6 +105,12 @@ public class WorkerCoordinator extends AbstractReapedActor {
 
     private void handle(WordEndpoint.VocabularyCreated message) {
         this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props(this.maxNumberOfLocalWorkers));
+    }
+
+    private void handle(Terminated terminated) {
+        if (terminated.actor() == this.wordEndpoint) {
+            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        }
     }
 
     // Forwarding

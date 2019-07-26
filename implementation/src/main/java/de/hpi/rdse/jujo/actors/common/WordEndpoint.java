@@ -3,6 +3,7 @@ package de.hpi.rdse.jujo.actors.common;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.actor.RootActorPath;
 import de.hpi.rdse.jujo.actors.common.training.SkipGramReceiver;
 import de.hpi.rdse.jujo.actors.common.training.TrainingCoordinator;
 import de.hpi.rdse.jujo.training.EncodedSkipGram;
@@ -19,7 +20,11 @@ import org.apache.commons.math3.linear.RealVector;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class WordEndpoint extends AbstractReapedActor {
 
@@ -62,9 +67,15 @@ public class WordEndpoint extends AbstractReapedActor {
         private int epoch;
     }
 
+    @NoArgsConstructor
+    public static class Unsubscribe implements Serializable {
+        private static final long serialVersionUID = -3790931380719047330L;
+    }
+
     private final ActorRef subsampler;
     private final ActorRef vocabularyDistributor;
     private ActorRef vocabularyReceiver;
+    private final Set<RootActorPath> subscribers = new HashSet<>();
 
     private WordEndpoint() {
         WordEndpointResolver.createInstance(this.self());
@@ -88,6 +99,7 @@ public class WordEndpoint extends AbstractReapedActor {
                    .match(EncodeSkipGrams.class, this::handle)
                    .match(UpdateWeight.class, this::handle)
                    .match(TrainingCoordinator.EndOfTraining.class, this::handle)
+                   .match(Unsubscribe.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -101,6 +113,9 @@ public class WordEndpoint extends AbstractReapedActor {
         WordEndpointResolver.getInstance().all().addAll(message.getEndpoints());
         WordEndpointResolver.getInstance().setMaster(message.getMaster());
         this.subsampler.tell(message, this.sender());
+        this.subscribers.addAll(WordEndpointResolver.getInstance().all().stream()
+                                                    .map(ref -> ref.path().root())
+                                                    .collect(Collectors.toCollection(LinkedList::new)));
     }
 
     private void handle(Subsampler.WordsCounted message) {
@@ -163,7 +178,14 @@ public class WordEndpoint extends AbstractReapedActor {
         message.getConsumer().tell(message, this.self());
     }
 
-
+    private void handle(Unsubscribe message) {
+        this.subscribers.remove(this.sender().path().root());
+        this.log().info(String.format("%s unsubscribed from local wordEndpoint. %d remaining subscribers",
+                this.sender().path().root(), this.subscribers.size()));
+        if (this.subscribers.isEmpty()) {
+            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        }
+    }
 
     // Forwarding
     private void handle(Subsampler.TakeOwnershipForWordCounts message) {

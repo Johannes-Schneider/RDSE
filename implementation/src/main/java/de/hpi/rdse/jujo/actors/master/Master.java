@@ -1,14 +1,13 @@
 package de.hpi.rdse.jujo.actors.master;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
 import de.hpi.rdse.jujo.actors.master.training.ResultPartitionReceiver;
 import de.hpi.rdse.jujo.startup.MasterCommand;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
@@ -21,10 +20,9 @@ public class Master extends AbstractReapedActor {
         return Props.create(Master.class, () -> new Master(masterCommand));
     }
 
-    @Getter @Builder @AllArgsConstructor @NoArgsConstructor
-    static class SlaveNodeTerminated implements Serializable {
-        private static final long serialVersionUID = -3053321777422537935L;
-        private ActorRef slave;
+    @NoArgsConstructor
+    public static class AllResultsReceived implements Serializable {
+        private static final long serialVersionUID = 2107336118970883673L;
     }
 
     private final MasterCommand masterCommand;
@@ -33,6 +31,8 @@ public class Master extends AbstractReapedActor {
     private final boolean contributesWorkers;
     private final ActorRef workerCoordinator;
     private ActorRef resultPartitionReceiver;
+    private boolean workerCoordinatorTerminated = false;
+    private boolean resultsReceived = false;
 
     private Master(MasterCommand masterCommand) {
         this.masterCommand = masterCommand;
@@ -42,6 +42,7 @@ public class Master extends AbstractReapedActor {
         this.workerCoordinator = this.context().actorOf(
                 WorkerCoordinator.props(masterCommand.getTemporaryWorkingDirectory(),
                         masterCommand.getNumberOfWorkers()));
+        this.context().watch(this.workerCoordinator);
         this.self().tell(new Shepherd.SlaveNodeRegistrationMessage(this.self()), this.self());
     }
 
@@ -67,6 +68,8 @@ public class Master extends AbstractReapedActor {
         return this.defaultReceiveBuilder()
                    .match(Shepherd.SlaveNodeRegistrationMessage.class, this::handle)
                    .match(ResultPartitionReceiver.ProcessResults.class, this::handle)
+                   .match(AllResultsReceived.class, this::handle)
+                   .match(Terminated.class, this::handle)
                    .matchAny(this::redirectToWorkerCoordinator)
                    .build();
     }
@@ -90,7 +93,27 @@ public class Master extends AbstractReapedActor {
         this.resultPartitionReceiver = this.context().actorOf(ResultPartitionReceiver.props(this.masterCommand.getOutputFile()));
     }
 
+    private void handle(AllResultsReceived message) {
+        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        this.resultsReceived = true;
+        this.terminate();
+    }
+
     private void redirectToWorkerCoordinator(Object message) {
         this.workerCoordinator.tell(message, this.sender());
+    }
+
+    private void handle(Terminated message) {
+        if (message.actor() == this.workerCoordinator) {
+            this.workerCoordinatorTerminated = true;
+        }
+        this.terminate();
+    }
+
+    private void terminate() {
+        if (this.workerCoordinatorTerminated && this.resultsReceived) {
+            this.log().info("All work has been done. Goodbye!");
+            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        }
     }
 }

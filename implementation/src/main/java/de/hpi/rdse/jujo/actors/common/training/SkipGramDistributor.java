@@ -59,17 +59,19 @@ public class SkipGramDistributor extends AbstractReapedActor {
 
         SkipGramProducer responsibleProducer = this.skipGramProducers.get(skipGramReceiver.path().root());
         this.distributeSkipGrams(skipGramReceiver, responsibleProducer);
-
-        if (this.skipGramProducers.values().stream().noneMatch(SkipGramProducer::hasNext)) {
-            this.log().info("All skip-grams have been distributed.");
-            this.context().parent().tell(new TrainingCoordinator.SkipGramsDistributed(), this.self());
-        }
     }
 
     private void distributeSkipGrams(ActorRef skipGramReceiver, SkipGramProducer producer) {
         if (!producer.hasNext()) {
             skipGramReceiver.tell(new TrainingCoordinator.EndOfTraining(this.self()), this.self());
             this.log().info(String.format("No more skip-grams for %s", skipGramReceiver.path()));
+            this.skipGramProducers.remove(skipGramReceiver.path().root());
+
+            if (this.skipGramProducers.isEmpty()) {
+                this.log().info("All skip-grams have been distributed.");
+                this.context().parent().tell(new TrainingCoordinator.SkipGramsDistributed(), this.self());
+            }
+
             return;
         }
 

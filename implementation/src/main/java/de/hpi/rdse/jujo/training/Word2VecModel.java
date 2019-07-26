@@ -75,7 +75,6 @@ public class Word2VecModel {
         for (int i = 0; i < dimensions; ++i) {
             weights[i] = -max + this.randomGenerator.nextDouble() * (max + max);
         }
-
         return weights;
     }
 
@@ -149,8 +148,8 @@ public class Word2VecModel {
 
     private float getLearningRate(int epoch) {
         Word2VecConfiguration configuration = this.getConfiguration();
-        float delta =
-                (this.learningRate - configuration.getMinimumLearningRate()) / (configuration.getNumberOfEpochs() - 1);
+        int numberOfEpochs = Math.max(1, configuration.getNumberOfEpochs() - 1);
+        float delta = (this.learningRate - configuration.getMinimumLearningRate()) / numberOfEpochs;
         return this.learningRate - (epoch * delta);
     }
 
