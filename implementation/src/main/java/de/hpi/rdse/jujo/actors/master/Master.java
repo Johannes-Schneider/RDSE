@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
+import akka.cluster.metrics.ClusterMetricsChanged;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
 import de.hpi.rdse.jujo.actors.master.training.ResultPartitionReceiver;
@@ -72,6 +73,7 @@ public class Master extends AbstractReapedActor {
                    .match(ResultPartitionReceiver.ProcessResults.class, this::handle)
                    .match(AllResultsReceived.class, this::handle)
                    .match(Terminated.class, this::handle)
+                   .match(ClusterMetricsChanged.class, this::handle)
                    .matchAny(this::redirectToWorkerCoordinator)
                    .build();
     }
@@ -111,6 +113,10 @@ public class Master extends AbstractReapedActor {
             this.workerCoordinatorTerminated = true;
         }
         this.terminate();
+    }
+
+    private void handle(ClusterMetricsChanged message) {
+        this.metricsReceiver.tell(message, this.sender());
     }
 
     private void terminate() {
