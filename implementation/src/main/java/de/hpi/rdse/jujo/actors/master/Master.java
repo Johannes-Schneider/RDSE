@@ -31,6 +31,7 @@ public class Master extends AbstractReapedActor {
     private final boolean contributesWorkers;
     private final ActorRef workerCoordinator;
     private ActorRef resultPartitionReceiver;
+    private final ActorRef metricsReceiver;
     private boolean workerCoordinatorTerminated = false;
     private boolean resultsReceived = false;
 
@@ -44,7 +45,7 @@ public class Master extends AbstractReapedActor {
                         masterCommand.getNumberOfWorkers()));
         this.context().watch(this.workerCoordinator);
         this.self().tell(new Shepherd.SlaveNodeRegistrationMessage(this.self()), this.self());
-        this.context().actorOf(MetricsReceiver.props());
+        this.metricsReceiver = this.context().actorOf(MetricsReceiver.props());
     }
 
     private ActorRef createWordEndpointDistributor() {
@@ -78,6 +79,7 @@ public class Master extends AbstractReapedActor {
     private void handle(Shepherd.SlaveNodeRegistrationMessage message) {
         this.wordEndpointDistributor.tell(message, this.self());
         this.corpusDistributor.tell(message, this.self());
+        this.metricsReceiver.tell(message, this.self());
     }
 
     private void handle(ResultPartitionReceiver.ProcessResults message) {
