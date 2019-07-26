@@ -1,6 +1,7 @@
 package de.hpi.rdse.jujo.actors.master;
 
 import akka.actor.Props;
+import akka.cluster.ClusterEvent.CurrentClusterState;
 import akka.cluster.metrics.ClusterMetricsChanged;
 import akka.cluster.metrics.ClusterMetricsExtension;
 import akka.cluster.metrics.NodeMetrics;
@@ -13,11 +14,7 @@ public class MetricsReceiver extends AbstractReapedActor {
         return Props.create(MetricsReceiver.class, MetricsReceiver::new);
     }
 
-    private final ClusterMetricsExtension clusterMetricsExtension;
-
-    private MetricsReceiver() {
-        this.clusterMetricsExtension = ClusterMetricsExtension.get(this.context().system());
-    }
+    private final ClusterMetricsExtension clusterMetricsExtension = ClusterMetricsExtension.get(getContext().system());
 
     @Override
     public void preStart() {
@@ -33,6 +30,7 @@ public class MetricsReceiver extends AbstractReapedActor {
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                    .match(ClusterMetricsChanged.class, this::handle)
+                   .match(CurrentClusterState.class, message -> {/*Ignore*/})
                    .matchAny(this::handleAny)
                    .build();
     }
