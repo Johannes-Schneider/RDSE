@@ -45,14 +45,15 @@ public class MetricsReceiver extends AbstractReapedActor {
     private void logHeap(NodeMetrics nodeMetrics) {
         StandardMetrics.HeapMemory heap = StandardMetrics.extractHeapMemory(nodeMetrics);
         if (heap != null) {
-            this.log().info("Used heap: {} MB", ((double) heap.used()) / 1024 / 1024);
+            this.log().info("[{}] Used heap: {} MB", nodeMetrics.address(), ((double) heap.used()) / 1024 / 1024);
         }
     }
 
     private void logCpu(NodeMetrics nodeMetrics) {
         StandardMetrics.Cpu cpu = StandardMetrics.extractCpu(nodeMetrics);
         if (cpu != null && cpu.systemLoadAverage().isDefined()) {
-            this.log().info("Load: {} ({} processors)", cpu.systemLoadAverage().get(), cpu.processors());
+            this.log().info("[{}] Load: {} ({} processors)", nodeMetrics.address(), cpu.systemLoadAverage().get(),
+                    cpu.processors());
         }
     }
 
