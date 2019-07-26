@@ -18,16 +18,6 @@ public class MetricsReceiver extends AbstractReapedActor {
     private final ClusterMetricsExtension clusterMetricsExtension = ClusterMetricsExtension.get(getContext().system());
 
     @Override
-    public void preStart() {
-        clusterMetricsExtension.subscribe(getSelf());
-    }
-
-    @Override
-    public void postStop() {
-        clusterMetricsExtension.unsubscribe(getSelf());
-    }
-
-    @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                    .match(ClusterMetricsChanged.class, this::handle)

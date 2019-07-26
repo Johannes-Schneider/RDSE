@@ -60,7 +60,7 @@ public class Shepherd extends AbstractReapedActor {
                 new Sheep.AcknowledgeRegistration(Word2VecConfiguration.fromMasterCommand(this.masterCommand)),
                 this.self());
         this.context().watch(sender());
-        this.master.tell(message, this.self());
+        this.master.tell(message, this.sender());
     }
 
     private void handle(Terminated message) {

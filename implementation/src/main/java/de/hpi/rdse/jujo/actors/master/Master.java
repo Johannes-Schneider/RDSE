@@ -81,7 +81,7 @@ public class Master extends AbstractReapedActor {
     private void handle(Shepherd.SlaveNodeRegistrationMessage message) {
         this.wordEndpointDistributor.tell(message, this.self());
         this.corpusDistributor.tell(message, this.self());
-        this.metricsReceiver.tell(message, this.self());
+        this.metricsReceiver.tell(message, this.sender());
     }
 
     private void handle(ResultPartitionReceiver.ProcessResults message) {
