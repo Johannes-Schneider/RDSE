@@ -44,6 +44,7 @@ public class Master extends AbstractReapedActor {
                         masterCommand.getNumberOfWorkers()));
         this.context().watch(this.workerCoordinator);
         this.self().tell(new Shepherd.SlaveNodeRegistrationMessage(this.self()), this.self());
+        this.context().actorOf(MetricsReceiver.props());
     }
 
     private ActorRef createWordEndpointDistributor() {
