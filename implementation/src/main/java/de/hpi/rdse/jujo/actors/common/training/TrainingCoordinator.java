@@ -158,6 +158,10 @@ public class TrainingCoordinator extends AbstractReapedActor {
             return;
         }
 
+        if (!this.skipGramReceiverRouter.routees().contains(message.actor())) {
+            return;
+        }
+
         this.log().info("Skip gram receiver terminated");
         this.skipGramReceiverRouter = this.skipGramReceiverRouter.removeRoutee(message.actor());
         if (!this.isTrainingFinished) {
