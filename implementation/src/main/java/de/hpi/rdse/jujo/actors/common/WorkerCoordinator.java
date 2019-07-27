@@ -51,6 +51,7 @@ public class WorkerCoordinator extends AbstractReapedActor {
         this.wordEndpoint = this.spawnChild(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
         this.corpusReceiver = this.spawnChild(CorpusReceiver.props(tempWorkingDir));
         this.maxNumberOfLocalWorkers = maxNumberOfLocalWorkers;
+        this.wordCountCoordinator = this.spawnChild(WordCountCoordinator.props(this.maxNumberOfLocalWorkers));
     }
 
 
@@ -73,23 +74,12 @@ public class WorkerCoordinator extends AbstractReapedActor {
     }
 
     private void handle(ProcessCorpusChunk message) {
-        this.initializeWordCountCoordinator();
         this.wordCountCoordinator.tell(message, this.self());
     }
 
     private void handle(CorpusTransferCompleted message) {
         this.localCorpusPartitionPath = message.localCorpusPartitionPath;
-        this.initializeWordCountCoordinator();
         this.wordCountCoordinator.tell(message, this.self());
-        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
-    }
-
-    private void initializeWordCountCoordinator() {
-        if (this.wordCountCoordinator != null) {
-            return;
-        }
-
-        this.wordCountCoordinator = this.spawnChild(WordCountCoordinator.props(this.maxNumberOfLocalWorkers));
     }
 
     private void handle(VocabularyReadyForTraining message) {

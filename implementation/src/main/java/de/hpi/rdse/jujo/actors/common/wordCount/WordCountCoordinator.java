@@ -81,8 +81,8 @@ public class WordCountCoordinator extends AbstractReapedActor {
     private void handle(WorkerCoordinator.CorpusTransferCompleted message) {
         String decodedChunk = this.corpusReassembler.decodeRemainingCorpus();
         this.wordCountRouter.route(new WordCountWorker.CountWords(decodedChunk), this.self());
-        this.wordCountRouter.route(new Broadcast(PoisonPill.getInstance()), ActorRef.noSender());
         this.purposeHasBeenFulfilled();
+        this.wordCountRouter.route(new Broadcast(PoisonPill.getInstance()), ActorRef.noSender());
     }
 
     private void handle(WordsCounted message) {
