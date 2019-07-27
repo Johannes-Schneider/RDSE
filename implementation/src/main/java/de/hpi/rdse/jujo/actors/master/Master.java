@@ -22,7 +22,6 @@ public class Master extends AbstractReapedActor {
 
     @NoArgsConstructor
     public static class AllResultsReceived implements Serializable {
-
         private static final long serialVersionUID = 2107336118970883673L;
     }
 
@@ -33,20 +32,17 @@ public class Master extends AbstractReapedActor {
     private final boolean contributesWorkers;
     private final ActorRef workerCoordinator;
     private ActorRef resultPartitionReceiver;
-    private boolean workerCoordinatorTerminated = false;
-    private boolean resultsReceived = false;
 
     private Master(MasterCommand masterCommand) {
         this.masterCommand = masterCommand;
         this.contributesWorkers = masterCommand.getNumberOfWorkers() > 0;
         this.wordEndpointDistributor = this.createWordEndpointDistributor();
         this.corpusDistributor = this.createCorpusDistributor();
-        this.workerCoordinator = this.context().actorOf(
+        this.workerCoordinator = this.spawnChild(
                 WorkerCoordinator.props(masterCommand.getTemporaryWorkingDirectory(),
                         masterCommand.getNumberOfWorkers()));
-        this.context().watch(this.workerCoordinator);
         this.self().tell(new Shepherd.SlaveNodeRegistrationMessage(this.self()), this.self());
-        this.metricsReceiver = this.context().actorOf(MetricsReceiver.props());
+        this.metricsReceiver = this.spawnChild(MetricsReceiver.props());
     }
 
     private ActorRef createWordEndpointDistributor() {
@@ -54,7 +50,7 @@ public class Master extends AbstractReapedActor {
         if (this.contributesWorkers) {
             expectedNumberOfSlaves++;
         }
-        return this.context().actorOf(WordEndpointDistributor.props(expectedNumberOfSlaves));
+        return this.spawnChild(WordEndpointDistributor.props(expectedNumberOfSlaves));
     }
 
     private ActorRef createCorpusDistributor() {
@@ -62,8 +58,7 @@ public class Master extends AbstractReapedActor {
         if (this.contributesWorkers) {
             expectedNumberOfSlaves++;
         }
-        return this.context().actorOf(
-                CorpusDistributor.props(expectedNumberOfSlaves, this.masterCommand.getInputFile()));
+        return this.spawnChild(CorpusDistributor.props(expectedNumberOfSlaves, this.masterCommand.getInputFile()));
     }
 
     @Override
@@ -73,7 +68,6 @@ public class Master extends AbstractReapedActor {
                    .match(ResultPartitionReceiver.ProcessResults.class, this::handle)
                    .match(ClusterMetricsChanged.class, this::handle)
                    .match(AllResultsReceived.class, this::handle)
-                   .match(Terminated.class, this::handle)
                    .matchAny(this::redirectToWorkerCoordinator)
                    .build();
     }
@@ -94,31 +88,18 @@ public class Master extends AbstractReapedActor {
             return;
         }
 
-        this.resultPartitionReceiver = this.context().actorOf(ResultPartitionReceiver.props(this.masterCommand.getOutputFile()));
+        this.resultPartitionReceiver = this.spawnChild(ResultPartitionReceiver.props(this.masterCommand.getOutputFile()));
     }
 
     private void handle(AllResultsReceived message) {
-        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
-        this.resultsReceived = true;
-        this.terminate();
+        this.logProcessStep("Shutdown");
+
+        this.metricsReceiver.tell(PoisonPill.getInstance(), ActorRef.noSender());
+        this.purposeHasBeenFulfilled();
     }
 
     private void redirectToWorkerCoordinator(Object message) {
         this.workerCoordinator.tell(message, this.sender());
-    }
-
-    private void handle(Terminated message) {
-        if (message.actor() == this.workerCoordinator) {
-            this.workerCoordinatorTerminated = true;
-        }
-        this.terminate();
-    }
-
-    private void terminate() {
-        if (this.workerCoordinatorTerminated && this.resultsReceived) {
-            this.log().info("All work has been done. Goodbye!");
-            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
-        }
     }
 
     private void handle(ClusterMetricsChanged message) {

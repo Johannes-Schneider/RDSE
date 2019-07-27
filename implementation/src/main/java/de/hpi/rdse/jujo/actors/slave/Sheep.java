@@ -55,7 +55,6 @@ public class Sheep extends AbstractReapedActor {
                    .match(RegisterAtShepherd.class, this::handle)
                    .match(AcknowledgeRegistration.class, this::handle)
                    .match(DisassociatedEvent.class, this::handle)
-                   .match(Terminated.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -91,10 +90,12 @@ public class Sheep extends AbstractReapedActor {
         }
     }
 
-    private void handle(Terminated message) {
-        this.context().unwatch(message.actor());
+    @Override
+    protected void handleTerminated(Terminated message) {
+        super.handleTerminated(message);
+
         if (message.actor() == this.slave) {
-            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
+            this.purposeHasBeenFulfilled();
         }
     }
 

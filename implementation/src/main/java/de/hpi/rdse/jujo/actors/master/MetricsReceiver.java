@@ -30,7 +30,7 @@ public class MetricsReceiver extends AbstractReapedActor {
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                    .match(ClusterMetricsChanged.class, this::handle)
-                   .match(CurrentClusterState.class, message -> {/*Ignore*/})
+                   .match(CurrentClusterState.class, this::ignore)
                    .matchAny(this::handleAny)
                    .build();
     }

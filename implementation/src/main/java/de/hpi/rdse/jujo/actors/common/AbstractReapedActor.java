@@ -50,6 +50,10 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
         this.log().info(String.format("##################### %s #####################", message));
     }
 
+    protected void ignore(Object message) {
+        // message is ignored
+    }
+
     private void handle(Resolve message) {
         this.sender().tell(new Resolved(), this.self());
     }

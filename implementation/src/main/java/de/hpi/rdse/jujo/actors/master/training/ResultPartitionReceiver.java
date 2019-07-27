@@ -60,7 +60,6 @@ public class ResultPartitionReceiver extends AbstractReapedActor {
     }
 
     private void handle(ProcessResults message) {
-
         message.getSource().getSource()
                .watchTermination((notUsed, stage) -> this.handleTermination(notUsed, stage, this.sender()))
                .runForeach(this::handleResult, this.materializer);
@@ -78,6 +77,7 @@ public class ResultPartitionReceiver extends AbstractReapedActor {
             sender.tell(new ResultPartitionSender.AcknowledgeResultPartition(), this.self());
             if (this.activeNodes.isEmpty()) {
                 this.context().parent().tell(new Master.AllResultsReceived(), this.self());
+                this.purposeHasBeenFulfilled();
             }
         });
         return notUsed;

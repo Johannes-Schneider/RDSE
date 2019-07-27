@@ -2,6 +2,7 @@ package de.hpi.rdse.jujo.actors.slave;
 
 import akka.Done;
 import akka.NotUsed;
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
@@ -11,6 +12,7 @@ import akka.stream.javadsl.Flow;
 import akka.util.ByteString;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
+import de.hpi.rdse.jujo.actors.master.CorpusDistributor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -67,7 +69,7 @@ public class CorpusReceiver extends AbstractReapedActor {
     private void handle(ProcessCorpusPartition message) {
         message.getSource().getSource()
                 .via(Flow.of(ByteString.class).map(this::handleCorpusChunk))
-                .watchTermination(this::handleTermination)
+                .watchTermination((notUsed, stage) -> this.handleTermination(notUsed, stage, this.sender()))
                 .runWith(FileIO.toPath(Paths.get(this.corpusLocation.getPath(), CORPUS_FILE_NAME)), this.materializer);
     }
 
@@ -77,11 +79,16 @@ public class CorpusReceiver extends AbstractReapedActor {
         return chunk;
     }
 
-    private NotUsed handleTermination(NotUsed not, CompletionStage<Done> stage) {
+    private NotUsed handleTermination(NotUsed not, CompletionStage<Done> stage, ActorRef sender) {
         stage.thenApply(x -> {
             this.log().info("Successfully received corpus.");
+
+            this.sender().tell(new CorpusDistributor.AcknowledgeCorpusPartition(), this.self());
             this.context().parent().tell(new WorkerCoordinator.CorpusTransferCompleted(
                     Paths.get(this.corpusLocation.getPath(), CORPUS_FILE_NAME).toString()), this.self());
+
+            this.purposeHasBeenFulfilled();
+
             return x;
         });
         return not;

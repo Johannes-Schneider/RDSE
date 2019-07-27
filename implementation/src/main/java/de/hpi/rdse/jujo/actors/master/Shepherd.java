@@ -33,7 +33,6 @@ public class Shepherd extends AbstractReapedActor {
     private final ActorRef master;
     private final Set<ActorRef> slaves = new HashSet<>();
     private final MasterCommand masterCommand;
-    private boolean masterTerminated = false;
 
     private Shepherd(final ActorRef master, final MasterCommand masterCommand) {
         this.master = master;
@@ -45,7 +44,6 @@ public class Shepherd extends AbstractReapedActor {
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                    .match(SlaveNodeRegistrationMessage.class, this::handle)
-                   .match(Terminated.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -63,19 +61,15 @@ public class Shepherd extends AbstractReapedActor {
         this.master.tell(message, this.sender());
     }
 
-    private void handle(Terminated message) {
-        this.context().unwatch(message.actor());
-        if (this.sender() == this.master) {
-            this.masterTerminated = true;
-        } else {
-            this.slaves.remove(this.sender());
-        }
-        this.terminateSystemIfClusterIsDispersed();
-    }
+    @Override
+    protected void handleTerminated(Terminated message) {
+        super.handleTerminated(message);
 
-    private void terminateSystemIfClusterIsDispersed() {
-        if (this.slaves.isEmpty() && this.masterTerminated) {
-            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        if (message.actor() == this.master) {
+            this.purposeHasBeenFulfilled();
+            return;
         }
+
+        this.slaves.remove(message.actor());
     }
 }

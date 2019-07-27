@@ -1,7 +1,6 @@
 package de.hpi.rdse.jujo.actors.slave;
 
 import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.remote.DisassociatedEvent;
@@ -26,17 +25,15 @@ public class Slave extends AbstractReapedActor {
     private final ActorRef workerCoordinator;
 
     private Slave(SlaveCommand slaveCommand) {
-        this.workerCoordinator = this.context().actorOf(
+        this.workerCoordinator = this.spawnChild(
                 WorkerCoordinator.props(slaveCommand.getTemporaryWorkingDirectory(),
                         slaveCommand.getNumberOfWorkers()));
-        this.context().watch(this.workerCoordinator);
     }
 
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                    .match(DisassociatedEvent.class, this::handle)
-                   .match(Terminated.class, this::handle)
                    .matchAny(this::redirectToWorkerCoordinator)
                    .build();
     }
@@ -46,10 +43,13 @@ public class Slave extends AbstractReapedActor {
         this.getContext().stop(self());
     }
 
-    private void handle(Terminated message) {
+    @Override
+    protected void handleTerminated(Terminated message) {
+        super.handleTerminated(message);
+
         if (message.actor() == this.workerCoordinator) {
-            this.log().info("All work has been done. Goodbye!");
-            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
+            this.logProcessStep("Shutdown");
+            this.purposeHasBeenFulfilled();
         }
     }
 

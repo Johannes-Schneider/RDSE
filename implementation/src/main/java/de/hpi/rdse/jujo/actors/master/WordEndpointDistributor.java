@@ -60,6 +60,8 @@ public class WordEndpointDistributor extends AbstractReapedActor {
         for (ActorRef wordEndpoint : this.wordEndpoints) {
             wordEndpoint.tell(message, this.self());
         }
+
+        this.purposeHasBeenFulfilled();
     }
 
 }
