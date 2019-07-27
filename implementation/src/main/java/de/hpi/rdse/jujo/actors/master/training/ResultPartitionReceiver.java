@@ -10,6 +10,7 @@ import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
+import de.hpi.rdse.jujo.actors.common.training.ResultPartitionSender;
 import de.hpi.rdse.jujo.actors.master.Master;
 import de.hpi.rdse.jujo.training.CWordEmbedding;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
@@ -74,7 +75,7 @@ public class ResultPartitionReceiver extends AbstractReapedActor {
         stage.whenComplete((done, throwable) -> {
             this.log().info(String.format("Received all results from %s", sender.path().root()));
             this.activeNodes.remove(sender.path().root());
-            sender.tell(PoisonPill.getInstance(), ActorRef.noSender());
+            sender.tell(new ResultPartitionSender.AcknowledgeResultPartition(), this.self());
             if (this.activeNodes.isEmpty()) {
                 this.context().parent().tell(new Master.AllResultsReceived(), this.self());
             }

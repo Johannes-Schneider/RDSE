@@ -5,7 +5,6 @@ import akka.actor.Props;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WordEndpoint;
 import de.hpi.rdse.jujo.training.EncodedSkipGram;
-import de.hpi.rdse.jujo.training.UnencodedSkipGram;
 import de.hpi.rdse.jujo.training.Word2VecModel;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import lombok.AllArgsConstructor;
@@ -15,19 +14,11 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.math3.linear.RealVector;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 
 public class SkipGramReceiver extends AbstractReapedActor {
 
     public static Props props() {
         return Props.create(SkipGramReceiver.class, SkipGramReceiver::new);
-    }
-
-    @NoArgsConstructor @AllArgsConstructor @Getter
-    public static class ProcessUnencodedSkipGrams implements Serializable {
-        private static final long serialVersionUID = 735332284132943544L;
-        private List<UnencodedSkipGram> skipGrams = new ArrayList<>();
     }
 
     @NoArgsConstructor @AllArgsConstructor @Builder @Getter
@@ -38,9 +29,7 @@ public class SkipGramReceiver extends AbstractReapedActor {
         private int epoch;
     }
 
-
-    private SkipGramReceiver() {
-    }
+    private SkipGramReceiver() { }
 
     @Override
     public Receive createReceive() {

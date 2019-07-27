@@ -69,7 +69,7 @@ public class SkipGramDistributor extends AbstractReapedActor {
 
             if (this.skipGramProducers.isEmpty()) {
                 this.log().info("All skip-grams have been distributed.");
-                this.context().parent().tell(new TrainingCoordinator.SkipGramsDistributed(), this.self());
+                this.purposeHasBeenFulfilled();
             }
 
             return;

@@ -93,7 +93,6 @@ public class WordEndpoint extends AbstractReapedActor {
                    .match(Subsampler.ConfirmWordOwnershipDistribution.class, this::handle)
                    .match(VocabularyReceiver.ProcessVocabulary.class, this::handle)
                    .match(VocabularyCompleted.class, this::handle)
-                   .match(SkipGramReceiver.ProcessUnencodedSkipGrams.class, this::handle)
                    .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
                    .match(TrainingCoordinator.SkipGramChunkTransferred.class, this::handle)
                    .match(EncodeSkipGrams.class, this::handle)
@@ -194,10 +193,6 @@ public class WordEndpoint extends AbstractReapedActor {
 
     private void handle(Subsampler.ConfirmWordOwnershipDistribution message) {
         this.subsampler.tell(message, this.sender());
-    }
-
-    private void handle(SkipGramReceiver.ProcessUnencodedSkipGrams message) {
-        this.context().parent().tell(message, this.sender());
     }
 
     private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {
