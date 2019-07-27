@@ -16,23 +16,23 @@ import java.io.Serializable;
 public class Master extends AbstractReapedActor {
 
     public static final String DEFAULT_NAME = "master";
-
     public static Props props(MasterCommand masterCommand) {
         return Props.create(Master.class, () -> new Master(masterCommand));
     }
 
     @NoArgsConstructor
     public static class AllResultsReceived implements Serializable {
+
         private static final long serialVersionUID = 2107336118970883673L;
     }
 
     private final MasterCommand masterCommand;
     private final ActorRef wordEndpointDistributor;
     private final ActorRef corpusDistributor;
+    private final ActorRef metricsReceiver;
     private final boolean contributesWorkers;
     private final ActorRef workerCoordinator;
     private ActorRef resultPartitionReceiver;
-    private final ActorRef metricsReceiver;
     private boolean workerCoordinatorTerminated = false;
     private boolean resultsReceived = false;
 
@@ -71,9 +71,9 @@ public class Master extends AbstractReapedActor {
         return this.defaultReceiveBuilder()
                    .match(Shepherd.SlaveNodeRegistrationMessage.class, this::handle)
                    .match(ResultPartitionReceiver.ProcessResults.class, this::handle)
+                   .match(ClusterMetricsChanged.class, this::handle)
                    .match(AllResultsReceived.class, this::handle)
                    .match(Terminated.class, this::handle)
-                   .match(ClusterMetricsChanged.class, this::handle)
                    .matchAny(this::redirectToWorkerCoordinator)
                    .build();
     }
@@ -81,7 +81,6 @@ public class Master extends AbstractReapedActor {
     private void handle(Shepherd.SlaveNodeRegistrationMessage message) {
         this.wordEndpointDistributor.tell(message, this.self());
         this.corpusDistributor.tell(message, this.self());
-        this.metricsReceiver.tell(message, this.sender());
     }
 
     private void handle(ResultPartitionReceiver.ProcessResults message) {
@@ -115,14 +114,14 @@ public class Master extends AbstractReapedActor {
         this.terminate();
     }
 
-    private void handle(ClusterMetricsChanged message) {
-        this.metricsReceiver.tell(message, this.sender());
-    }
-
     private void terminate() {
         if (this.workerCoordinatorTerminated && this.resultsReceived) {
             this.log().info("All work has been done. Goodbye!");
             this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
+    }
+
+    private void handle(ClusterMetricsChanged message) {
+        this.metricsReceiver.tell(message, this.sender());
     }
 }

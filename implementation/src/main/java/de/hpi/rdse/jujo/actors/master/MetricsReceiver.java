@@ -1,7 +1,6 @@
 package de.hpi.rdse.jujo.actors.master;
 
 import akka.actor.Props;
-import akka.actor.Terminated;
 import akka.cluster.ClusterEvent.CurrentClusterState;
 import akka.cluster.metrics.ClusterMetricsChanged;
 import akka.cluster.metrics.ClusterMetricsExtension;
@@ -18,12 +17,20 @@ public class MetricsReceiver extends AbstractReapedActor {
     private final ClusterMetricsExtension clusterMetricsExtension = ClusterMetricsExtension.get(getContext().system());
 
     @Override
+    public void preStart() {
+        clusterMetricsExtension.subscribe(getSelf());
+    }
+
+    @Override
+    public void postStop() {
+        clusterMetricsExtension.unsubscribe(getSelf());
+    }
+
+    @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
                    .match(ClusterMetricsChanged.class, this::handle)
                    .match(CurrentClusterState.class, message -> {/*Ignore*/})
-                   .match(Shepherd.SlaveNodeRegistrationMessage.class, this::handle)
-                   .match(Terminated.class, this::handle)
                    .matchAny(this::handleAny)
                    .build();
     }
@@ -33,11 +40,6 @@ public class MetricsReceiver extends AbstractReapedActor {
             logHeap(nodeMetrics);
             logCpu(nodeMetrics);
         }
-    }
-
-    private void handle(Shepherd.SlaveNodeRegistrationMessage message) {
-        this.context().watch(message.getSlave());
-        this.clusterMetricsExtension.subscribe(message.getSlave());
     }
 
     private void logHeap(NodeMetrics nodeMetrics) {
@@ -53,11 +55,6 @@ public class MetricsReceiver extends AbstractReapedActor {
             this.log().info("[{}] Load: {} ({} processors)", nodeMetrics.address(), cpu.systemLoadAverage().get(),
                     cpu.processors());
         }
-    }
-
-    private void handle(Terminated message) {
-        this.context().unwatch(message.actor());
-        this.clusterMetricsExtension.unsubscribe(message.actor());
     }
 
 }
