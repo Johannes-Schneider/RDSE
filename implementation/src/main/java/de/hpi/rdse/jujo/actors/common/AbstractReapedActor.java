@@ -84,9 +84,13 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
         this.log().debug(String.format("Purpose of %s has been fulfilled", this.self().path()));
         this.isPurposeFulfilled = true;
 
-        if (this.context().children().isEmpty()) {
+        if (this.childActors.isEmpty()) {
             this.terminateSelf();
+            return;
         }
+
+        this.log().debug(String.format("Purpose has been fulfilled, but we are still waiting for %d children to also " +
+                                       "terminate", this.childActors.size()));
     }
 
     protected void handleAny(Object message) {
