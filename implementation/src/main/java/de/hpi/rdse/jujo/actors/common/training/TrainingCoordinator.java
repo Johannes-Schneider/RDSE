@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class TrainingCoordinator extends AbstractReapedActor {
 
@@ -136,9 +137,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
     protected void handleTerminated(Terminated message) {
         super.handleTerminated(message);
 
-        if (this.skipGramReceiverRouter.routees().contains(message.actor())) {
-
-            this.skipGramReceiverRouter.removeRoutee(message.actor());
+        if (this.removeFromRouter(new AtomicReference<>(this.skipGramReceiverRouter), message.actor())) {
             if (!this.isPurposeFulfilled()) {
                 this.respawnSkipGramReceiver();
                 return;

@@ -48,9 +48,8 @@ public class WorkerCoordinator extends AbstractReapedActor {
     private String localCorpusPartitionPath;
 
     private WorkerCoordinator(String tempWorkingDir, int maxNumberOfLocalWorkers) {
-        this.wordEndpoint = this.context().actorOf(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
-        this.context().watch(this.wordEndpoint);
-        this.corpusReceiver = this.context().actorOf(CorpusReceiver.props(tempWorkingDir));
+        this.wordEndpoint = this.spawnChild(WordEndpoint.props(), WordEndpoint.DEFAULT_NAME);
+        this.corpusReceiver = this.spawnChild(CorpusReceiver.props(tempWorkingDir));
         this.maxNumberOfLocalWorkers = maxNumberOfLocalWorkers;
     }
 
@@ -65,7 +64,6 @@ public class WorkerCoordinator extends AbstractReapedActor {
                 .match(SkipGramReceiver.ProcessEncodedSkipGram.class, this::handle)
                 .match(TrainingCoordinator.SkipGramChunkTransferred.class, this::handle)
                 .match(TrainingCoordinator.EndOfTraining.class, this::handle)
-                .match(Terminated.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
     }
@@ -87,10 +85,11 @@ public class WorkerCoordinator extends AbstractReapedActor {
     }
 
     private void initializeWordCountCoordinator() {
-        if (this.wordCountCoordinator == null) {
-            this.wordCountCoordinator = this.context().actorOf(
-                    WordCountCoordinator.props(this.wordEndpoint, this.maxNumberOfLocalWorkers));
+        if (this.wordCountCoordinator != null) {
+            return;
         }
+
+        this.wordCountCoordinator = this.spawnChild(WordCountCoordinator.props(this.maxNumberOfLocalWorkers));
     }
 
     private void handle(VocabularyReadyForTraining message) {
@@ -103,12 +102,15 @@ public class WorkerCoordinator extends AbstractReapedActor {
     }
 
     private void handle(WordEndpoint.VocabularyCreated message) {
-        this.trainingCoordinator = this.context().actorOf(TrainingCoordinator.props(this.maxNumberOfLocalWorkers));
+        this.trainingCoordinator = this.spawnChild(TrainingCoordinator.props(this.maxNumberOfLocalWorkers));
     }
 
-    private void handle(Terminated terminated) {
-        if (terminated.actor() == this.wordEndpoint) {
-            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
+    @Override
+    protected void handleTerminated(Terminated message) {
+        super.handleTerminated(message);
+
+        if (message.actor() == this.wordEndpoint) {
+            this.purposeHasBeenFulfilled();
         }
     }
 

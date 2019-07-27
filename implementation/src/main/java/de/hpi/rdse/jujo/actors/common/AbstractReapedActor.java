@@ -6,9 +6,11 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.japi.pf.ReceiveBuilder;
+import akka.routing.Router;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractReapedActor extends AbstractLoggingActor {
 
@@ -90,6 +92,19 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
         ActorRef childActor = this.context().actorOf(props);
         this.context().watch(childActor);
         return childActor;
+    }
+
+    protected ActorRef spawnChild(Props props, String name) {
+        ActorRef childActor = this.context().actorOf(props, name);
+        this.context().watch(childActor);
+        return childActor;
+    }
+
+    protected final boolean removeFromRouter(AtomicReference<Router> router, ActorRef actor) {
+        int numberOfRoutees = router.get().routees().size();
+        router.set(router.get().removeRoutee(actor));
+
+        return router.get().routees().size() < numberOfRoutees;
     }
 
     private void terminateSelf() {

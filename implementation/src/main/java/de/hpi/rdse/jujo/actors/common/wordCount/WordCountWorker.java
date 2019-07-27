@@ -23,9 +23,7 @@ public class WordCountWorker extends AbstractReapedActor {
         private String chunk;
     }
 
-    private WordCountWorker() {
-
-    }
+    private WordCountWorker() { }
 
     @Override
     public Receive createReceive() {

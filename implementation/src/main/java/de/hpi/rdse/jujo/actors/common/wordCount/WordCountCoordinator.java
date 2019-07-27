@@ -14,6 +14,7 @@ import de.hpi.rdse.jujo.actors.common.Subsampler;
 import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
 import de.hpi.rdse.jujo.corpusHandling.CorpusReassembler;
 import de.hpi.rdse.jujo.fileHandling.FilePartitionIterator;
+import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,11 +24,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class WordCountCoordinator extends AbstractReapedActor {
 
-    public static Props props(ActorRef supervisor, int maxNumberOfLocalWorkers) {
-        return Props.create(WordCountCoordinator.class, () -> new WordCountCoordinator(supervisor, maxNumberOfLocalWorkers));
+    public static Props props(int maxNumberOfLocalWorkers) {
+        return Props.create(WordCountCoordinator.class, () -> new WordCountCoordinator(maxNumberOfLocalWorkers));
     }
 
     @NoArgsConstructor @AllArgsConstructor @Getter
@@ -36,56 +38,51 @@ public class WordCountCoordinator extends AbstractReapedActor {
         private Map<String, Integer> wordCounts;
     }
 
-    private final ActorRef supervisor;
     private final Map<String, Long> wordCounts = new HashMap<>();
-    private Router router;
-    private boolean wordCountFinished = false;
+    private Router wordCountRouter;
     private final CorpusReassembler corpusReassembler;
 
-    private WordCountCoordinator(ActorRef supervisor, int maxNumberOfLocalWorkers) {
-        this.supervisor = supervisor;
-        this.router = this.createRoundRobinRouter(maxNumberOfLocalWorkers);
+    private WordCountCoordinator(int maxNumberOfLocalWorkers) {
+        this.wordCountRouter = this.createWordCountRouter(maxNumberOfLocalWorkers);
         this.corpusReassembler = new CorpusReassembler(FilePartitionIterator.chunkSize());
     }
 
-    private Router createRoundRobinRouter(int numberOfWorkers) {
+    private Router createWordCountRouter(int numberOfWorkers) {
         List<Routee> workers = new ArrayList<>();
         for (int i = 0; i < numberOfWorkers; i++) {
-            workers.add(this.createWorker());
+            workers.add(this.createWordCountWorker());
         }
         return new Router(new RoundRobinRoutingLogic(), workers);
     }
 
-    private ActorRefRoutee createWorker() {
-        ActorRef worker = this.context().actorOf(WordCountWorker.props());
-        this.context().watch(worker);
+    private ActorRefRoutee createWordCountWorker() {
+        ActorRef worker = this.spawnChild(WordCountWorker.props());
         return new ActorRefRoutee(worker);
     }
 
     @Override
     public Receive createReceive() {
         return this.defaultReceiveBuilder()
-                .match(WorkerCoordinator.ProcessCorpusChunk.class, this::handle)
-                .match(WorkerCoordinator.CorpusTransferCompleted.class, this::handle)
-                .match(WordsCounted.class, this::handle)
-                .match(Terminated.class, this::handle)
-                .matchAny(this::handleAny)
-                .build();
+                   .match(WorkerCoordinator.ProcessCorpusChunk.class, this::handle)
+                   .match(WorkerCoordinator.CorpusTransferCompleted.class, this::handle)
+                   .match(WordsCounted.class, this::handle)
+                   .matchAny(this::handleAny)
+                   .build();
     }
 
     private void handle(WorkerCoordinator.ProcessCorpusChunk message) {
-        if (this.wordCountFinished) {
+        if (this.isPurposeFulfilled()) {
             this.log().error("Received CorpusChunk to process although transfer already finished");
         }
         String decodedChunk = this.corpusReassembler.decodeCorpusUntilNextDelimiter(message.getCorpusChunk());
-        this.router.route(new WordCountWorker.CountWords(decodedChunk), this.self());
+        this.wordCountRouter.route(new WordCountWorker.CountWords(decodedChunk), this.self());
     }
 
     private void handle(WorkerCoordinator.CorpusTransferCompleted message) {
         String decodedChunk = this.corpusReassembler.decodeRemainingCorpus();
-        this.router.route(new WordCountWorker.CountWords(decodedChunk), this.self());
-        this.wordCountFinished = true;
-        this.router.route(new Broadcast(PoisonPill.getInstance()), ActorRef.noSender());
+        this.wordCountRouter.route(new WordCountWorker.CountWords(decodedChunk), this.self());
+        this.wordCountRouter.route(new Broadcast(PoisonPill.getInstance()), ActorRef.noSender());
+        this.purposeHasBeenFulfilled();
     }
 
     private void handle(WordsCounted message) {
@@ -96,16 +93,29 @@ public class WordCountCoordinator extends AbstractReapedActor {
         }
     }
 
-    private void handle(Terminated message) {
-        this.context().unwatch(message.actor());
-        this.router = this.router.removeRoutee(message.actor());
-        if (this.wordCountFinished) {
-            if (this.router.routees().size() < 1) {
-                this.supervisor.tell(new Subsampler.WordsCounted(this.wordCounts), this.self());
-                this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
-            }
+    @Override
+    protected void handleTerminated(Terminated message) {
+        super.handleTerminated(message);
+
+        if (!this.removeFromRouter(new AtomicReference<>(this.wordCountRouter), message.actor())) {
             return;
         }
-        this.router.addRoutee(this.createWorker());
+
+        if (!this.isPurposeFulfilled()) {
+            this.respawnWordCountWorker();
+            return;
+        }
+
+        if (this.wordCountRouter.routees().size() > 0) {
+            // wait for all word count workers to be terminated
+            return;
+        }
+
+        ActorRef localWordEndpoint = WordEndpointResolver.getInstance().localWordEndpoint();
+        localWordEndpoint.tell(new Subsampler.WordsCounted(this.wordCounts), this.self());
+    }
+
+    private void respawnWordCountWorker() {
+        this.wordCountRouter.addRoutee(this.createWordCountWorker());
     }
 }

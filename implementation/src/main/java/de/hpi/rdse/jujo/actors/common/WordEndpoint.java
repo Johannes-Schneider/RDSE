@@ -79,8 +79,8 @@ public class WordEndpoint extends AbstractReapedActor {
 
     private WordEndpoint() {
         WordEndpointResolver.createInstance(this.self());
-        this.subsampler = this.context().actorOf(Subsampler.props());
-        this.vocabularyDistributor = this.context().actorOf(VocabularyDistributor.props());
+        this.subsampler = this.spawnChild(Subsampler.props());
+        this.vocabularyDistributor = this.spawnChild(VocabularyDistributor.props());
     }
 
     @Override
@@ -118,26 +118,21 @@ public class WordEndpoint extends AbstractReapedActor {
     }
 
     private void handle(Subsampler.WordsCounted message) {
-        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
         this.subsampler.tell(message, this.sender());
     }
 
     private void handle(VocabularyCreated message) {
-        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
-        this.log().info("WordEndpoint is aware of the fact that the vocabulary has been created.");
-
         this.vocabularyDistributor.tell(new VocabularyDistributor.DistributeVocabulary(), this.self());
         this.context().parent().tell(message, this.self());
     }
 
     private void handle(VocabularyCompleted message) {
-        this.sender().tell(PoisonPill.getInstance(), ActorRef.noSender());
         this.context().parent().tell(new WorkerCoordinator.VocabularyReadyForTraining(), this.self());
     }
 
     private void handle(VocabularyReceiver.ProcessVocabulary message) {
         if (this.vocabularyReceiver == null) {
-            this.vocabularyReceiver = this.context().actorOf(VocabularyReceiver.props());
+            this.vocabularyReceiver = this.spawnChild(VocabularyReceiver.props());
         }
 
         this.vocabularyReceiver.tell(message, this.sender());
@@ -152,11 +147,11 @@ public class WordEndpoint extends AbstractReapedActor {
                 WordEmbedding embeddedInput = Word2VecModel.getInstance().createInputEmbedding(input);
                 EncodedSkipGram encodedSkipGram = new EncodedSkipGram(unencodedSkipGram.getExpectedOutput(), embeddedInput);
                 this.sender().tell(SkipGramReceiver.ProcessEncodedSkipGram
-                        .builder()
-                        .skipGram(encodedSkipGram)
-                        .wordEndpointResponsibleForInput(this.self())
-                        .epoch(message.getEpoch())
-                        .build(), this.self());
+                                           .builder()
+                                           .skipGram(encodedSkipGram)
+                                           .wordEndpointResponsibleForInput(this.self())
+                                           .epoch(message.getEpoch())
+                                           .build(), this.self());
             }
         }
         this.log().debug(String.format("Successfully encoded %d skip-grams", message.getUnencodedSkipGrams().size()));
@@ -180,9 +175,9 @@ public class WordEndpoint extends AbstractReapedActor {
     private void handle(Unsubscribe message) {
         this.subscribers.remove(this.sender().path().root());
         this.log().info(String.format("%s unsubscribed from local wordEndpoint. %d remaining subscribers",
-                this.sender().path().root(), this.subscribers.size()));
+                                      this.sender().path().root(), this.subscribers.size()));
         if (this.subscribers.isEmpty()) {
-            this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
+            this.purposeHasBeenFulfilled();
         }
     }
 

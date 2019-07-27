@@ -2,6 +2,7 @@ package de.hpi.rdse.jujo.actors.common;
 
 import akka.Done;
 import akka.NotUsed;
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.RootActorPath;
 import akka.stream.ActorMaterializer;
@@ -66,12 +67,12 @@ public class VocabularyReceiver extends AbstractReapedActor {
         message.getSource().getSource()
                .watchTermination((notUsed, stage) -> this.handleTermination(notUsed,
                                                                             stage,
-                                                                            remote,
+                                                                            this.sender(),
                                                                             message.getVocabularyLength()))
                .runWith(FileIO.toPath(remoteFile.toPath()), this.materializer);
     }
 
-    private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage, RootActorPath remote,
+    private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage, ActorRef sender,
                                       long vocabularyLength) {
         stage.whenComplete((done, throwable) -> {
             if (throwable != null) {
@@ -80,11 +81,13 @@ public class VocabularyReceiver extends AbstractReapedActor {
             }
 
             try {
+                // wait for the file handle to be closed properly
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
+            RootActorPath remote = sender.path().root();
             this.log().info(String.format("Done receiving vocabulary from %s", remote));
             try {
                 InputStream stream = new FileInputStream(this.remoteFiles.get(remote));
@@ -97,9 +100,12 @@ public class VocabularyReceiver extends AbstractReapedActor {
                                                                         new BloomFilterWordLookupStrategy(bloomFilter));
                 Vocabulary.getInstance().addRemoteVocabulary(remote, partition);
 
+                sender.tell(new VocabularyDistributor.AcknowledgeVocabulary(), this.self());
+
                 if (Vocabulary.getInstance().isComplete()) {
                     this.log().info("Vocabulary completed. Informing WordEndpoint.");
                     this.context().parent().tell(new WordEndpoint.VocabularyCompleted(), this.self());
+                    this.purposeHasBeenFulfilled();
                 }
             } catch (IOException e) {
                 e.printStackTrace();

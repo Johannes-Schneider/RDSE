@@ -2,6 +2,7 @@ package de.hpi.rdse.jujo.actors.common;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.RootActorPath;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.IOResult;
@@ -21,6 +22,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 public class VocabularyDistributor extends AbstractReapedActor {
@@ -36,16 +39,31 @@ public class VocabularyDistributor extends AbstractReapedActor {
         private static final long serialVersionUID = -126729453919355190L;
     }
 
+    @NoArgsConstructor
+    public static class AcknowledgeVocabulary implements Serializable {
+        private static final long serialVersionUID = -6933395501940751758L;
+    }
+
     private final Materializer materializer;
+    private final Set<RootActorPath> unacknowledgedVocabularyReceivers = new HashSet<>();
 
     private VocabularyDistributor() {
         this.materializer = ActorMaterializer.create(this.context().system());
+        for (ActorRef wordEndpoint : WordEndpointResolver.getInstance().all()) {
+            if (wordEndpoint == WordEndpointResolver.getInstance().localWordEndpoint()) {
+                // we dont want to send our local vocabulary to ourselves
+                continue;
+            }
+
+            this.unacknowledgedVocabularyReceivers.add(wordEndpoint.path().root());
+        }
     }
 
     @Override
     public Receive createReceive() {
         return defaultReceiveBuilder()
                 .match(DistributeVocabulary.class, this::handle)
+                .match(AcknowledgeVocabulary.class, this::handle)
                 .matchAny(this::handleAny)
                 .build();
     }
@@ -74,7 +92,7 @@ public class VocabularyDistributor extends AbstractReapedActor {
     }
 
     private void distributeVocabularyToAllEndpoints(ByteArrayOutputStream vocabularyStream, long vocabularyLength) {
-        this.log().info("About to distribute vocabulary to all WordEndpoints");
+        this.logProcessStep("Distributing Vocabulary");
 
         for (ActorRef endpoint : WordEndpointResolver.getInstance().all()) {
             if (endpoint == WordEndpointResolver.getInstance().localWordEndpoint()) {
@@ -89,6 +107,14 @@ public class VocabularyDistributor extends AbstractReapedActor {
                                                                                            .source(ref)
                                                                                            .vocabularyLength(vocabularyLength)
                                                                                            .build()), this.context().dispatcher()).to(endpoint, this.self());
+        }
+    }
+
+    private void handle(AcknowledgeVocabulary message) {
+        this.unacknowledgedVocabularyReceivers.remove(this.sender().path().root());
+
+        if (this.unacknowledgedVocabularyReceivers.isEmpty()) {
+            this.purposeHasBeenFulfilled();
         }
     }
 }
