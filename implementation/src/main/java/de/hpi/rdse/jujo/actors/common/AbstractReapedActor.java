@@ -10,6 +10,7 @@ import akka.routing.Router;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractReapedActor extends AbstractLoggingActor {
@@ -94,7 +95,7 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
     }
 
     protected ActorRef spawnChild(Props props) {
-        return this.spawnChild(props, props.actorClass().getName());
+        return this.spawnChild(props, String.format("%s-%s", props.actorClass().getName(), UUID.randomUUID()));
     }
 
     protected ActorRef spawnChild(Props props, String name) {
