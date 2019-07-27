@@ -94,9 +94,7 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
     }
 
     protected ActorRef spawnChild(Props props) {
-        ActorRef childActor = this.context().actorOf(props);
-        this.context().watch(childActor);
-        return childActor;
+        return this.spawnChild(props, props.actorClass().getName());
     }
 
     protected ActorRef spawnChild(Props props, String name) {
