@@ -12,6 +12,7 @@ import akka.routing.Routee;
 import akka.routing.Router;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WordEndpoint;
+import de.hpi.rdse.jujo.utils.Utility;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -137,7 +138,9 @@ public class TrainingCoordinator extends AbstractReapedActor {
     protected void handleTerminated(Terminated message) {
         super.handleTerminated(message);
 
-        if (this.removeFromRouter(new AtomicReference<>(this.skipGramReceiverRouter), message.actor())) {
+        if (Utility.isRoutee(this.skipGramReceiverRouter, message.actor())) {
+            this.skipGramReceiverRouter = this.skipGramReceiverRouter.removeRoutee(message.actor());
+
             if (!this.isPurposeFulfilled()) {
                 this.respawnSkipGramReceiver();
                 return;

@@ -14,6 +14,7 @@ import de.hpi.rdse.jujo.actors.common.Subsampler;
 import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
 import de.hpi.rdse.jujo.corpusHandling.CorpusReassembler;
 import de.hpi.rdse.jujo.fileHandling.FilePartitionIterator;
+import de.hpi.rdse.jujo.utils.Utility;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -97,9 +98,11 @@ public class WordCountCoordinator extends AbstractReapedActor {
     protected void handleTerminated(Terminated message) {
         super.handleTerminated(message);
 
-        if (!this.removeFromRouter(new AtomicReference<>(this.wordCountRouter), message.actor())) {
+        if (!Utility.isRoutee(this.wordCountRouter, message.actor())) {
             return;
         }
+
+        this.wordCountRouter = this.wordCountRouter.removeRoutee(message.actor());
 
         if (!this.isPurposeFulfilled()) {
             this.respawnWordCountWorker();

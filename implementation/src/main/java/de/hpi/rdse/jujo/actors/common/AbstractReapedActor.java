@@ -107,13 +107,6 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
         return childActor;
     }
 
-    protected final boolean removeFromRouter(AtomicReference<Router> router, ActorRef actor) {
-        int numberOfRoutees = router.get().routees().size();
-        router.set(router.get().removeRoutee(actor));
-
-        return router.get().routees().size() < numberOfRoutees;
-    }
-
     private void terminateSelf() {
         this.log().debug(String.format("Terminating self (%s).", this.self().path()));
         this.self().tell(PoisonPill.getInstance(), ActorRef.noSender());
