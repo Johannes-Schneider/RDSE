@@ -81,7 +81,7 @@ public class CorpusReceiver extends AbstractReapedActor {
 
     private NotUsed handleTermination(NotUsed not, CompletionStage<Done> stage, ActorRef sender) {
         stage.thenApply(x -> {
-            this.log().info("Successfully received corpus.");
+            this.log().info(String.format("Successfully received corpus from %s", sender.path()));
 
             sender.tell(new CorpusDistributor.AcknowledgeCorpusPartition(), this.self());
             this.context().parent().tell(new WorkerCoordinator.CorpusTransferCompleted(

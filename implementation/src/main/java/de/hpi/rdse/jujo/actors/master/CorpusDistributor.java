@@ -70,7 +70,7 @@ public class CorpusDistributor extends AbstractReapedActor {
         CompletionStage<SourceRef<ByteString>> sourceRef = source.runWith(StreamRefs.sourceRef(), this.materializer);
 
         Patterns.pipe(sourceRef.thenApply(CorpusReceiver.ProcessCorpusPartition::new), this.context().dispatcher()).to(
-                message.getSlave());
+                message.getSlave(), this.self());
     }
 
     private Source<ByteString, NotUsed> createCorpusSource() {
