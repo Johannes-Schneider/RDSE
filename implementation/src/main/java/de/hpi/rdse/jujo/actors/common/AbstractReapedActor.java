@@ -10,6 +10,8 @@ import akka.routing.Router;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -25,6 +27,7 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
         private static final long serialVersionUID = -487222029972297207L;
     }
 
+    private final Set<ActorRef> childActors = new HashSet<>();
     private boolean isPurposeFulfilled = false;
 
     @Override
@@ -64,14 +67,13 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
     }
 
     protected void handleTerminated(Terminated message) {
-        if (!this.context().children().toStream().contains(message.actor())) {
+        if (!this.childActors.remove(message.actor())) {
             this.log().warning(String.format("Received Terminated message from non-child actor (%s)!",
                                              message.actor().path()));
         }
 
         this.context().unwatch(message.actor());
-
-        if (this.context().children().isEmpty() && this.isPurposeFulfilled) {
+        if (this.childActors.isEmpty() && this.isPurposeFulfilled) {
             this.terminateSelf();
         }
     }
@@ -95,12 +97,13 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
     }
 
     protected ActorRef spawnChild(Props props) {
-        return this.spawnChild(props, String.format("%s-%s", props.actorClass().getName(), UUID.randomUUID()));
+        return this.spawnChild(props, String.format("%s-%s", props.actorClass().getSimpleName(), UUID.randomUUID()));
     }
 
     protected ActorRef spawnChild(Props props, String name) {
         ActorRef childActor = this.context().actorOf(props, name);
         this.context().watch(childActor);
+        this.childActors.add(childActor);
         return childActor;
     }
 
