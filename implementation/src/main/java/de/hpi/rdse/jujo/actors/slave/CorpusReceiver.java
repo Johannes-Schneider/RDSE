@@ -83,7 +83,7 @@ public class CorpusReceiver extends AbstractReapedActor {
         stage.thenApply(x -> {
             this.log().info("Successfully received corpus.");
 
-            this.sender().tell(new CorpusDistributor.AcknowledgeCorpusPartition(), this.self());
+            sender.tell(new CorpusDistributor.AcknowledgeCorpusPartition(), this.self());
             this.context().parent().tell(new WorkerCoordinator.CorpusTransferCompleted(
                     Paths.get(this.corpusLocation.getPath(), CORPUS_FILE_NAME).toString()), this.self());
 

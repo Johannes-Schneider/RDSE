@@ -41,9 +41,9 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
 
     protected ReceiveBuilder defaultReceiveBuilder() {
         return this.receiveBuilder()
-                .match(Resolve.class, this::handle)
-                .match(Resolved.class, this::handle)
-                .match(Terminated.class, this::handleTerminated);
+                   .match(Resolve.class, this::handle)
+                   .match(Resolved.class, this::handle)
+                   .match(Terminated.class, this::handleTerminated);
     }
 
     protected final void logProcessStep(String message) {
@@ -64,7 +64,8 @@ public abstract class AbstractReapedActor extends AbstractLoggingActor {
 
     protected void handleTerminated(Terminated message) {
         if (!this.context().children().toStream().contains(message.actor())) {
-            this.log().warning("Received Terminated message from non-child actor!");
+            this.log().warning(String.format("Received Terminated message from non-child actor (%s)!",
+                                             message.actor().path()));
         }
 
         this.context().unwatch(message.actor());
