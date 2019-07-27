@@ -1,7 +1,6 @@
 package de.hpi.rdse.jujo.training;
 
 import akka.actor.RootActorPath;
-import de.hpi.rdse.jujo.fileHandling.FilePartitioner;
 import de.hpi.rdse.jujo.fileHandling.FileWordIterator;
 import de.hpi.rdse.jujo.wordManagement.Vocabulary;
 import de.hpi.rdse.jujo.wordManagement.WordEndpointResolver;

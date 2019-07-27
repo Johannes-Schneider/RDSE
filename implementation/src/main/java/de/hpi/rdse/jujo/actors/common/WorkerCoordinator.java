@@ -1,7 +1,6 @@
 package de.hpi.rdse.jujo.actors.common;
 
 import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.util.ByteString;

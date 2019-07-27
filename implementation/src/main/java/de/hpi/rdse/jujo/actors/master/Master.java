@@ -3,7 +3,6 @@ package de.hpi.rdse.jujo.actors.master;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
-import akka.actor.Terminated;
 import akka.cluster.metrics.ClusterMetricsChanged;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;

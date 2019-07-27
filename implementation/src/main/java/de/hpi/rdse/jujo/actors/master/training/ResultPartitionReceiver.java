@@ -3,7 +3,6 @@ package de.hpi.rdse.jujo.actors.master.training;
 import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.RootActorPath;
 import akka.stream.ActorMaterializer;
