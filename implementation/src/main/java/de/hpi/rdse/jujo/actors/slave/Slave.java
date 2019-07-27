@@ -3,6 +3,7 @@ package de.hpi.rdse.jujo.actors.slave;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Terminated;
+import akka.cluster.Cluster;
 import akka.remote.DisassociatedEvent;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
@@ -49,8 +50,14 @@ public class Slave extends AbstractReapedActor {
 
         if (message.actor() == this.workerCoordinator) {
             this.logProcessStep("Shutdown");
+            this.leaveCluster();
             this.purposeHasBeenFulfilled();
         }
+    }
+
+    private void leaveCluster() {
+        Cluster cluster = Cluster.get(this.context().system());
+        cluster.leave(cluster.selfAddress());
     }
 
     private void redirectToWorkerCoordinator(Object message) {

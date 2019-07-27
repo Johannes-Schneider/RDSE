@@ -3,6 +3,7 @@ package de.hpi.rdse.jujo.actors.master;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.cluster.Cluster;
 import akka.cluster.metrics.ClusterMetricsChanged;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
@@ -94,7 +95,13 @@ public class Master extends AbstractReapedActor {
         this.logProcessStep("Shutdown");
 
         this.metricsReceiver.tell(PoisonPill.getInstance(), ActorRef.noSender());
+        this.leaveCluster();
         this.purposeHasBeenFulfilled();
+    }
+
+    private void leaveCluster() {
+        Cluster cluster = Cluster.get(this.context().system());
+        cluster.leave(cluster.selfAddress());
     }
 
     private void redirectToWorkerCoordinator(Object message) {
