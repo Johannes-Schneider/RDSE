@@ -101,7 +101,7 @@ public class Vocabulary implements Iterable<String> {
         return this.words[index];
     }
 
-    @Override @NotNull
+    @Override
     public Iterator<String> iterator() {
         return Arrays.stream(this.words).iterator();
     }
