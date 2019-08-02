@@ -1,0 +1,19 @@
+java -Xmx20G -jar target/distributed-model-training-3.0.jar
+master
+-h
+{NODE-IP}
+-d
+100
+--input
+./corpus.txt
+--slaves
+{NUMBER-OF-SLAVE-NODES}
+--workers
+16
+-t
+./tmp
+-o
+./results.txt
+-e
+1
+| tee log.log

@@ -35,6 +35,9 @@
 # CMake
 cmake-build-*/
 
+# venc
+scripts/venv/
+
 # Mongo Explorer plugin
 .idea/**/mongoSettings.xml
 

@@ -1,0 +1,11 @@
+java -Xmx20G -jar target/distributed-model-training-3.0.jar
+slave
+--host
+{NODE-IP}
+--workers
+16
+--master-host
+{MASTER-NODE-IP}
+-t
+./tmp
+| tee log.log
