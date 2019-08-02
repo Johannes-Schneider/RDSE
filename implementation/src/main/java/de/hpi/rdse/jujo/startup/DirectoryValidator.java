@@ -11,7 +11,7 @@ public class DirectoryValidator implements IValueValidator<String> {
     public void validate(String name, String value) throws ParameterException {
         File file = new File(value);
         if (!file.exists()) {
-            throw new ParameterException("the given " + name + " does not exist");
+            file.mkdirs();
         }
 
         if (!file.isDirectory()) {
