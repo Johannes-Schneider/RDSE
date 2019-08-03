@@ -1,10 +1,8 @@
 package de.hpi.rdse.jujo.actors.master;
 
 import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.Cluster;
-import akka.cluster.metrics.ClusterMetricsChanged;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.WorkerCoordinator;
 import de.hpi.rdse.jujo.actors.master.training.ResultPartitionReceiver;
@@ -28,7 +26,6 @@ public class Master extends AbstractReapedActor {
     private final MasterCommand masterCommand;
     private final ActorRef wordEndpointDistributor;
     private final ActorRef corpusDistributor;
-    private final ActorRef metricsReceiver;
     private final boolean contributesWorkers;
     private final ActorRef workerCoordinator;
     private ActorRef resultPartitionReceiver;
@@ -42,7 +39,6 @@ public class Master extends AbstractReapedActor {
                 WorkerCoordinator.props(masterCommand.getTemporaryWorkingDirectory(),
                         masterCommand.getNumberOfWorkers()));
         this.self().tell(new Shepherd.SlaveNodeRegistrationMessage(this.self()), this.self());
-        this.metricsReceiver = this.spawnChild(MetricsReceiver.props());
     }
 
     private ActorRef createWordEndpointDistributor() {
@@ -66,7 +62,6 @@ public class Master extends AbstractReapedActor {
         return this.defaultReceiveBuilder()
                    .match(Shepherd.SlaveNodeRegistrationMessage.class, this::handle)
                    .match(ResultPartitionReceiver.ProcessResults.class, this::handle)
-                   .match(ClusterMetricsChanged.class, this::handle)
                    .match(AllResultsReceived.class, this::handle)
                    .matchAny(this::redirectToWorkerCoordinator)
                    .build();
@@ -94,7 +89,6 @@ public class Master extends AbstractReapedActor {
     private void handle(AllResultsReceived message) {
         this.logProcessStep("Shutdown");
 
-        this.metricsReceiver.tell(PoisonPill.getInstance(), ActorRef.noSender());
         this.leaveCluster();
         this.purposeHasBeenFulfilled();
     }
@@ -106,9 +100,5 @@ public class Master extends AbstractReapedActor {
 
     private void redirectToWorkerCoordinator(Object message) {
         this.workerCoordinator.tell(message, this.sender());
-    }
-
-    private void handle(ClusterMetricsChanged message) {
-        this.metricsReceiver.tell(message, this.sender());
     }
 }
