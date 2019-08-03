@@ -45,7 +45,7 @@ public class VocabularyDistributor extends AbstractReapedActor {
     }
 
     private final Materializer materializer;
-    private final Set<RootActorPath> acknowledgedVocabularyReceivers = new HashSet<>();
+    private final Set<RootActorPath> unacknowledgedVocabularyReceivers = new HashSet<>();
 
     private VocabularyDistributor() {
         this.materializer = ActorMaterializer.create(this.context().system());
@@ -91,6 +91,8 @@ public class VocabularyDistributor extends AbstractReapedActor {
                 continue;
             }
 
+            this.unacknowledgedVocabularyReceivers.add(endpoint.path().root());
+
             ByteArrayInputStream inputStream = new ByteArrayInputStream(vocabularyStream.toByteArray());
             Source<ByteString, CompletionStage<IOResult>> source = StreamConverters.fromInputStream(() -> inputStream);
             CompletionStage<SourceRef<ByteString>> sourceRef = source.runWith(StreamRefs.sourceRef(), this.materializer);
@@ -103,22 +105,10 @@ public class VocabularyDistributor extends AbstractReapedActor {
     }
 
     private void handle(AcknowledgeVocabulary message) {
-        this.acknowledgedVocabularyReceivers.add(this.sender().path().root());
+        this.unacknowledgedVocabularyReceivers.remove(this.sender().path().root());
 
-        if (!WordEndpointResolver.getInstance().isReadyToResolve()) {
-            return;
+        if (this.unacknowledgedVocabularyReceivers.isEmpty()) {
+            this.purposeHasBeenFulfilled();
         }
-
-        for (ActorRef wordEndpoint : WordEndpointResolver.getInstance().all()) {
-            if (wordEndpoint == WordEndpointResolver.getInstance().localWordEndpoint()) {
-                continue;
-            }
-
-            if (!this.acknowledgedVocabularyReceivers.contains(wordEndpoint.path().root())) {
-                return;
-            }
-        }
-
-        this.purposeHasBeenFulfilled();
     }
 }

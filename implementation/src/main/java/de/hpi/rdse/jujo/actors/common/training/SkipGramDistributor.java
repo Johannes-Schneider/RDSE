@@ -54,7 +54,7 @@ public class SkipGramDistributor extends AbstractReapedActor {
     }
 
     private void createAndDistributeSkipGrams(ActorRef skipGramReceiver) {
-        this.log().info(String.format("Currently producing skip-grams for %d consumers",
+        this.log().debug(String.format("Currently producing skip-grams for %d consumers",
                 this.skipGramProducers.values().stream().filter(SkipGramProducer::hasNext).map(producer -> 1L).mapToLong(Long::longValue).sum()));
 
         SkipGramProducer responsibleProducer = this.skipGramProducers.get(skipGramReceiver.path().root());
@@ -64,7 +64,7 @@ public class SkipGramDistributor extends AbstractReapedActor {
     private void distributeSkipGrams(ActorRef skipGramReceiver, SkipGramProducer producer) {
         if (!producer.hasNext()) {
             skipGramReceiver.tell(new TrainingCoordinator.EndOfTraining(this.self()), this.self());
-            this.log().info(String.format("No more skip-grams for %s", skipGramReceiver.path()));
+            this.log().debug(String.format("No more skip-grams for %s", skipGramReceiver.path()));
             this.skipGramProducers.remove(skipGramReceiver.path().root());
 
             if (this.skipGramProducers.isEmpty()) {
@@ -101,10 +101,10 @@ public class SkipGramDistributor extends AbstractReapedActor {
 
             lastReceiver = skipGramsByInputResolver.getKey();
             lastReceiver.tell(WordEndpoint.EncodeSkipGrams
-                            .builder()
-                            .unencodedSkipGrams(skipGramsByInputResolver.getValue())
-                            .epoch(producer.getCurrentEpoch())
-                            .build(), skipGramReceiver);
+                    .builder()
+                    .unencodedSkipGrams(skipGramsByInputResolver.getValue())
+                    .epoch(producer.getCurrentEpoch())
+                    .build(), skipGramReceiver);
         }
 
         ActorRef responsibleEndpoint =
@@ -113,7 +113,7 @@ public class SkipGramDistributor extends AbstractReapedActor {
         lastEndpoint.tell(new TrainingCoordinator.SkipGramChunkTransferred(this.self(), responsibleEndpoint),
                 this.self());
 
-        this.log().info(String.format("Informed %s about the end of this skip gram chunk produced for %s",
+        this.log().debug(String.format("Informed %s about the end of this skip gram chunk produced for %s",
                 lastEndpoint.path(), responsibleEndpoint.path()));
     }
 

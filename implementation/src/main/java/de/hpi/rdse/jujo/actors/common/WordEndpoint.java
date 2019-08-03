@@ -146,11 +146,11 @@ public class WordEndpoint extends AbstractReapedActor {
                 WordEmbedding embeddedInput = Word2VecModel.getInstance().createInputEmbedding(input);
                 EncodedSkipGram encodedSkipGram = new EncodedSkipGram(unencodedSkipGram.getExpectedOutput(), embeddedInput);
                 this.sender().tell(SkipGramReceiver.ProcessEncodedSkipGram
-                                           .builder()
-                                           .skipGram(encodedSkipGram)
-                                           .wordEndpointResponsibleForInput(this.self())
-                                           .epoch(message.getEpoch())
-                                           .build(), this.self());
+                        .builder()
+                        .skipGram(encodedSkipGram)
+                        .wordEndpointResponsibleForInput(this.self())
+                        .epoch(message.getEpoch())
+                        .build(), this.self());
             }
         }
         this.log().debug(String.format("Successfully encoded %d skip-grams", message.getUnencodedSkipGrams().size()));
@@ -162,7 +162,8 @@ public class WordEndpoint extends AbstractReapedActor {
     }
 
     private void handle(TrainingCoordinator.SkipGramChunkTransferred message) {
-        this.log().info(String.format("Skip gram chunk transferred from %s to %s", message.getProducer(), message.getConsumer()));
+        this.log().debug(String.format("Skip gram chunk transferred from %s to %s", message.getProducer(),
+                message.getConsumer()));
         if (this.self().path().root().equals(message.getConsumer().path().root())) {
             this.context().parent().tell(message, this.sender());
             return;
@@ -174,7 +175,7 @@ public class WordEndpoint extends AbstractReapedActor {
     private void handle(Unsubscribe message) {
         this.subscribers.remove(this.sender().path().root());
         this.log().info(String.format("%s unsubscribed from local wordEndpoint. %d remaining subscribers",
-                                      this.sender().path().root(), this.subscribers.size()));
+                this.sender().path().root(), this.subscribers.size()));
         if (this.subscribers.isEmpty()) {
             this.purposeHasBeenFulfilled();
         }

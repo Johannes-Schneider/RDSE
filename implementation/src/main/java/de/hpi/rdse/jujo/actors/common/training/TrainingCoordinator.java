@@ -117,19 +117,19 @@ public class TrainingCoordinator extends AbstractReapedActor {
     private void handle(SkipGramReceiver.ProcessEncodedSkipGram message) {
         if (!this.trainingHasStarted) {
             this.log().debug(String.format("Buffering encoded skip-gram \"%s\" from %s",
-                                           message.getSkipGram().getExpectedOutput(), this.sender().path()));
+                    message.getSkipGram().getExpectedOutput(), this.sender().path()));
 
             this.trainingBuffer.add(message);
             return;
         }
 
         this.log().debug(String.format("Processing encoded skip-gram (expected output = \"%s\") from %s",
-                                       message.getSkipGram().getExpectedOutput(), this.sender().path()));
+                message.getSkipGram().getExpectedOutput(), this.sender().path()));
         this.skipGramReceiverRouter.route(message, this.sender());
     }
 
     private void handle(SkipGramChunkTransferred message) {
-        this.log().info(String.format("Requesting next skip gram batch from %s", message.getProducer().path()));
+        this.log().debug(String.format("Requesting next skip gram batch from %s", message.getProducer().path()));
         message.getProducer().tell(new SkipGramDistributor.RequestNextSkipGramChunk(), this.self());
     }
 
@@ -171,7 +171,7 @@ public class TrainingCoordinator extends AbstractReapedActor {
     private void handle(EndOfTraining message) {
         this.activeSkipGramProducers.remove(message.getProducer().path().root());
         this.log().info(String.format("End of training received from %s. Waiting for %d more producers to finish",
-                                      message.getProducer().path().root(), this.activeSkipGramProducers.size()));
+                message.getProducer().path().root(), this.activeSkipGramProducers.size()));
 
         if (this.activeSkipGramProducers.isEmpty()) {
             this.purposeHasBeenFulfilled();
