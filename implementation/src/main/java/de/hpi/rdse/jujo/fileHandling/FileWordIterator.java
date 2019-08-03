@@ -53,6 +53,14 @@ public class FileWordIterator implements Iterator<String[]> {
         return nextReadSize() > 0;
     }
 
+    public float progress() {
+        try {
+            return this.inputStream.getChannel().position() / (float)this.fileLength;
+        } catch (IOException e) {
+            return 0.0f;
+        }
+    }
+
     private int nextReadSize() {
         try {
             int nextReadSize = (int) Math.min(chunkSize(), this.fileLength - this.inputStream.getChannel().position());

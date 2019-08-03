@@ -24,6 +24,7 @@ public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
     private final FileWordIterator fileIterator;
     private final List<String> words = new ArrayList<>();
     private long epochStartTime = System.currentTimeMillis();
+    private float lastPrintedProgress = 0.0f;
     @Getter
     private int currentEpoch = 0;
 
@@ -49,6 +50,13 @@ public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
         this.startNextEpochIfAtEndOfEpoch();
 
         this.words.addAll(Arrays.asList(this.fileIterator.next()));
+
+        float progress = this.fileIterator.progress();
+        if (Math.abs(progress - this.lastPrintedProgress) >= 1.0f) {
+            Log.info(String.format("##################### [%s] Epoch %d - %f %% #####################",
+                    this.skipGramReceiver, this.currentEpoch, progress * 100));
+            this.lastPrintedProgress = progress;
+        }
 
         List<String> wordsForSkipGramProduction = this.words.subList(0,
                 this.words.size() - Word2VecModel.getInstance().getConfiguration().getWindowSize());
