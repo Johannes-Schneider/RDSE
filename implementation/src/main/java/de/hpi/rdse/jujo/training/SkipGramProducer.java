@@ -52,8 +52,8 @@ public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
         this.words.addAll(Arrays.asList(this.fileIterator.next()));
 
         float progress = this.fileIterator.progress();
-        if (Math.abs(progress - this.lastPrintedProgress) >= 0.001f) {
-            Log.info(String.format("##################### [%s] Epoch %d - %f %% #####################",
+        if (Math.abs(progress - this.lastPrintedProgress) >= 0.0001f) {
+            Log.info(String.format("[%s] Epoch %d - %f %%",
                     this.skipGramReceiver, this.currentEpoch, progress * 100));
             this.lastPrintedProgress = progress;
         }
