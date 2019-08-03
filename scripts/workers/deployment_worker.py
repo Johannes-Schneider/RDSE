@@ -58,4 +58,5 @@ class DeploymentWorker(Process):
             return
 
         logging.info(f"[{self._configuration.node_ip}] TRANSFER CORPUS")
-        os.system(f"sshpass -p '{self._configuration.password}' scp '{self._corpus.absolute()}' {self._configuration.username}@{self._configuration.node_ip}:{self._configuration.home_dir}/{self._configuration.project_root_dir}/corpus.txt")
+        os.system(
+            f"sshpass -p '{self._configuration.password}' scp '{self._corpus.absolute()}' {self._configuration.username}@{self._configuration.node_ip}:{self._configuration.home_dir}/{self._configuration.project_root_dir}/corpus.txt")

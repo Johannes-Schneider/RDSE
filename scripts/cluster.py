@@ -68,7 +68,7 @@ def _initialize_deploy_parser(subparsers):
         "--corpus-file",
         type=Path,
         help="Path to corpus file",
-        required=True
+        required=False
     )
 
 

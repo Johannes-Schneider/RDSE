@@ -5,7 +5,7 @@ master
 -d
 100
 --input
-./corpus.txt
+~/cleaned_wikipedia_corpus.txt
 --slaves
 {NUMBER-OF-SLAVE-NODES}
 --workers
