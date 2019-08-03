@@ -23,8 +23,12 @@ public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
     private final RootActorPath skipGramReceiver;
     private final FileWordIterator fileIterator;
     private final List<String> words = new ArrayList<>();
+
+    // performance measurement
     private long epochStartTime = System.currentTimeMillis();
+    private long lastPrintTime = System.currentTimeMillis();
     private float lastPrintedProgress = 0.0f;
+    private long skipGramsProducedSinceLastPrint = 0;
     @Getter
     private int currentEpoch = 0;
 
@@ -51,13 +55,6 @@ public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
 
         this.words.addAll(Arrays.asList(this.fileIterator.next()));
 
-        float progress = this.fileIterator.progress();
-        if (Math.abs(progress - this.lastPrintedProgress) >= 0.0001f) {
-            Log.info(String.format("[%s] Epoch %d - %f %%",
-                    this.skipGramReceiver, this.currentEpoch, progress * 100));
-            this.lastPrintedProgress = progress;
-        }
-
         List<String> wordsForSkipGramProduction = this.words.subList(0,
                 this.words.size() - Word2VecModel.getInstance().getConfiguration().getWindowSize());
 
@@ -74,6 +71,18 @@ public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
 
             skipGrams.add(skipGram);
         }
+
+        this.skipGramsProducedSinceLastPrint += skipGrams.size();
+        float progress = this.fileIterator.progress();
+        if (Math.abs(progress - this.lastPrintedProgress) >= 0.0001f) {
+            Log.info(String.format("[%s] Epoch %d - %f %% (%f skip grams / s)",
+                    this.skipGramReceiver, this.currentEpoch, progress * 100,
+                    this.skipGramsProducedSinceLastPrint / (double) ((System.currentTimeMillis() - this.lastPrintTime) / 1000)));
+            this.lastPrintedProgress = progress;
+            this.skipGramsProducedSinceLastPrint = 0;
+            this.lastPrintTime = System.currentTimeMillis();
+        }
+
         wordsForSkipGramProduction.clear();
         return skipGrams;
     }
@@ -84,7 +93,7 @@ public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
         }
         Log.info(String.format("##################### [%s] Epoch %d finished after %f min #####################",
                 this.skipGramReceiver, this.currentEpoch,
-                (System.currentTimeMillis() - this.epochStartTime) / (double)(1000 * 60)));
+                (System.currentTimeMillis() - this.epochStartTime) / (double) (1000 * 60)));
         this.currentEpoch++;
         this.fileIterator.reset();
 
