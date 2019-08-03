@@ -45,18 +45,10 @@ public class VocabularyDistributor extends AbstractReapedActor {
     }
 
     private final Materializer materializer;
-    private final Set<RootActorPath> unacknowledgedVocabularyReceivers = new HashSet<>();
+    private final Set<RootActorPath> acknowledgedVocabularyReceivers = new HashSet<>();
 
     private VocabularyDistributor() {
         this.materializer = ActorMaterializer.create(this.context().system());
-        for (ActorRef wordEndpoint : WordEndpointResolver.getInstance().all()) {
-            if (wordEndpoint == WordEndpointResolver.getInstance().localWordEndpoint()) {
-                // we dont want to send our local vocabulary to ourselves
-                continue;
-            }
-
-            this.unacknowledgedVocabularyReceivers.add(wordEndpoint.path().root());
-        }
     }
 
     @Override
@@ -79,11 +71,11 @@ public class VocabularyDistributor extends AbstractReapedActor {
 
     private BloomFilter<String> createBloomFilter() {
         this.log().info(String.format("Building BloomFilter for %d words and %f false positive rate",
-                                      Vocabulary.getInstance().length(),
-                                      BLOOM_FILTER_FALSE_POSITIVE_RATE));
+                Vocabulary.getInstance().length(),
+                BLOOM_FILTER_FALSE_POSITIVE_RATE));
         BloomFilter<String> filter =
                 BloomFilter.create(Funnels.stringFunnel(Vocabulary.WORD_ENCODING), Vocabulary.getInstance().length(),
-                BLOOM_FILTER_FALSE_POSITIVE_RATE);
+                        BLOOM_FILTER_FALSE_POSITIVE_RATE);
         for (String word : Vocabulary.getInstance()) {
             filter.put(word);
         }
@@ -111,10 +103,22 @@ public class VocabularyDistributor extends AbstractReapedActor {
     }
 
     private void handle(AcknowledgeVocabulary message) {
-        this.unacknowledgedVocabularyReceivers.remove(this.sender().path().root());
+        this.acknowledgedVocabularyReceivers.add(this.sender().path().root());
 
-        if (this.unacknowledgedVocabularyReceivers.isEmpty()) {
-            this.purposeHasBeenFulfilled();
+        if (!WordEndpointResolver.getInstance().isReadyToResolve()) {
+            return;
         }
+
+        for (ActorRef wordEndpoint : WordEndpointResolver.getInstance().all()) {
+            if (wordEndpoint == WordEndpointResolver.getInstance().localWordEndpoint()) {
+                continue;
+            }
+
+            if (!this.acknowledgedVocabularyReceivers.contains(wordEndpoint.path().root())) {
+                return;
+            }
+        }
+
+        this.purposeHasBeenFulfilled();
     }
 }
