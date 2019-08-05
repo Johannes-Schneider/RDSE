@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class WordEndpointResolver {
@@ -87,6 +88,15 @@ public class WordEndpointResolver {
         for (ActorRef wordEndpoint : this.all()) {
             wordEndpoint.tell(message, sender);
         }
+    }
+
+    public void unregisterWordEndpoint(RootActorPath wordEndpointHost) {
+        Optional<ActorRef> toRemove = this.wordEndpoints.stream()
+                                  .filter(wordEndpoint -> wordEndpoint.path().root() == wordEndpointHost).findAny();
+        if (!toRemove.isPresent()) {
+            return;
+        }
+        this.wordEndpoints.remove(toRemove.get());
     }
 
 }
