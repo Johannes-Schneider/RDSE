@@ -98,20 +98,42 @@ public class Word2VecModel {
     }
 
     public void updateInputWeight(int localOneHotIndex, RealVector gradient, int epoch) {
+        if (gradient.isNaN()) {
+            Log.error("Encountered NAN when updating input weights!");
+            return;
+        }
         try {
             this.lockInputWeight(localOneHotIndex);
             RealVector inputWeight = this.getInputWeight(localOneHotIndex);
-            this.inputWeights[localOneHotIndex] = inputWeight.subtract(gradient.mapMultiply(this.getLearningRate(epoch)));
+            RealVector updatedInputWeights = inputWeight.subtract(gradient.mapMultiply(this.getLearningRate(epoch)));
+
+            if (updatedInputWeights.isNaN()) {
+                Log.error("Input weights are NAN after performing update!");
+                return;
+            }
+
+            this.inputWeights[localOneHotIndex] = updatedInputWeights;
         } finally {
             this.unlockInputWeight(localOneHotIndex);
         }
     }
 
     public void updateOutputWeight(int localOneHotIndex, RealVector gradient, int epoch) {
+        if (gradient.isNaN()) {
+            Log.error("Encountered NAN when updating output weights!");
+            return;
+        }
         try {
             this.lockOutputWeight(localOneHotIndex);
             RealVector outputWeight = this.getOutputWeight(localOneHotIndex);
-            this.outputWeights[localOneHotIndex] = outputWeight.subtract(gradient.mapMultiply(this.getLearningRate(epoch)));
+            RealVector updatedOutputWeights = outputWeight.subtract(gradient.mapMultiply(this.getLearningRate(epoch)));
+
+            if (updatedOutputWeights.isNaN()) {
+                Log.error("Output weights are NAN after performing update!");
+                return;
+            }
+
+            this.outputWeights[localOneHotIndex] = updatedOutputWeights;
         } finally {
             this.unlockOutputWeight(localOneHotIndex);
         }
@@ -147,9 +169,16 @@ public class Word2VecModel {
 
     private float getLearningRate(int epoch) {
         Word2VecConfiguration configuration = this.getConfiguration();
-        int numberOfEpochs = Math.max(1, configuration.getNumberOfEpochs() - 1);
+        int numberOfEpochs = Math.max(1, configuration.getNumberOfEpochs());
         float delta = (this.learningRate - configuration.getMinimumLearningRate()) / numberOfEpochs;
-        return this.learningRate - (epoch * delta);
+        float learningRate = this.learningRate - (epoch * delta);
+
+        if (learningRate <= 0.0f) {
+            Log.error(String.format("Learning rate <= 0 for epoch %d", epoch));
+            return this.learningRate;
+        }
+
+        return learningRate;
     }
 
     public Iterator<CWordEmbedding> getResults() {
