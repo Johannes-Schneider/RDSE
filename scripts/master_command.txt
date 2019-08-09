@@ -5,7 +5,7 @@ master
 -d
 100
 --input
-~/cleaned_wikipedia_corpus.txt
+./corpus.txt
 --slaves
 {NUMBER-OF-SLAVE-NODES}
 --workers
@@ -15,7 +15,7 @@ master
 -o
 ./results.txt
 -e
-1
+5
 --window-size
 5
 | tee log.log

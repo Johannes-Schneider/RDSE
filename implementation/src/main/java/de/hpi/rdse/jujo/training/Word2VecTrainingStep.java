@@ -43,12 +43,16 @@ public class Word2VecTrainingStep {
         if (Double.isNaN(dotProduct)) {
             Log.error("Encountered NAN for dot product during training step");
         }
-        double sigmoidResult = this.sigmoid.value(dotProduct) - 1;
-        if (Double.isNaN(sigmoidResult)) {
+        double forwardPropagationError = this.sigmoid.value(dotProduct) - 1;
+        if (Double.isNaN(forwardPropagationError)) {
             Log.error("Encountered NAN for sigmoid result of expected output word");
         }
-        this.outputGradient = this.input.getWeights().mapMultiply(sigmoidResult);
-        this.inputGradient = this.outputWordOutputWeights.mapMultiply(sigmoidResult);
+        if (forwardPropagationError < -1 || forwardPropagationError > 0) {
+            Log.error("Wrong forward propagation error calculated! Should be in range [-1, 0].");
+        }
+        this.outputGradient = this.input.getWeights().mapMultiply(forwardPropagationError);
+        this.inputGradient = this.outputWordOutputWeights.mapMultiply(forwardPropagationError); // take outputWeight
+        // of input word
 
         this.trainNegativeSamples();
 
