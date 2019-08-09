@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 public class Vocabulary implements Iterable<String> {
@@ -84,6 +85,7 @@ public class Vocabulary implements Iterable<String> {
     private final String[] words;
     private final Map<RootActorPath, VocabularyPartition> vocabularyPartitions = new HashMap<>();
     private final AliasSampler aliasSampler;
+    private final ReentrantLock writeLock = new ReentrantLock();
 
     private Vocabulary(TreeMap<String, Long> subsampledWordCounts) {
         this.words = subsampledWordCounts.keySet().toArray(new String[0]);
@@ -106,10 +108,15 @@ public class Vocabulary implements Iterable<String> {
     }
 
     public void addRemoteVocabulary(RootActorPath remote, VocabularyPartition vocabulary) {
-        this.vocabularyPartitions.putIfAbsent(remote, vocabulary);
+        this.writeLock.lock();
+        try {
+            this.vocabularyPartitions.putIfAbsent(remote, vocabulary);
 
-        if (this.isComplete()) {
-            this.initializePartitions();
+            if (this.isComplete()) {
+                this.initializePartitions();
+            }
+        } finally {
+            this.writeLock.unlock();
         }
     }
 
