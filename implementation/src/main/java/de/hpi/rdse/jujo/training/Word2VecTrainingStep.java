@@ -33,6 +33,12 @@ public class Word2VecTrainingStep {
 
     public RealVector train() {
         Log.debug(String.format("Start training for expected output word %s", this.skipGram.getExpectedOutput()));
+        if (this.input.getWeights().isNaN()) {
+            Log.error("Encountered NAN for input weights during trainingStep");
+        }
+        if (this.outputWordOutputWeights.isNaN()) {
+            Log.error("Encountered NAN for output weights during trainingStep");
+        }
         double sigmoidResult = this.sigmoid.value(this.outputWordOutputWeights.dotProduct(this.input.getWeights())) - 1;
         if (Double.isNaN(sigmoidResult)) {
             Log.error(String.format("Encountered NAN for sigmoid result of expected output word %s",
