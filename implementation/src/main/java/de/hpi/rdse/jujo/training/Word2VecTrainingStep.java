@@ -39,10 +39,14 @@ public class Word2VecTrainingStep {
         if (this.outputWordOutputWeights.isNaN()) {
             Log.error("Encountered NAN for output weights during trainingStep");
         }
-        double sigmoidResult = this.sigmoid.value(this.outputWordOutputWeights.dotProduct(this.input.getWeights())) - 1;
+        double dotProduct = this.outputWordOutputWeights.dotProduct(this.input.getWeights());
+        if (Double.isNaN(dotProduct)) {
+            Log.error("Encountered NAN for dot product during training step");
+        }
+        double sigmoidResult = this.sigmoid.value(dotProduct) - 1;
         if (Double.isNaN(sigmoidResult)) {
-            Log.error(String.format("Encountered NAN for sigmoid result of expected output word %s",
-                    this.skipGram.getExpectedOutput()));
+            Log.error(String.format("Encountered NAN for sigmoid result of expected output word %s using value %f",
+                    this.skipGram.getExpectedOutput(), dotProduct));
         }
         this.outputGradient = this.input.getWeights().mapMultiply(sigmoidResult);
         this.inputGradient = this.outputWordOutputWeights.mapMultiply(sigmoidResult);
