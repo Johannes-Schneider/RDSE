@@ -76,7 +76,7 @@ public class SkipGramProducer implements Iterator<List<UnencodedSkipGram>> {
         float progress = this.fileIterator.progress();
         if (Math.abs(progress - this.lastPrintedProgress) >= 0.0001f) {
             Log.info(String.format("[%s] Epoch %d - %f %% (%f skip grams / s)",
-                    this.skipGramReceiver, this.currentEpoch, progress * 100,
+                    this.skipGramReceiver, this.currentEpoch + 1, progress * 100,
                     this.skipGramsProducedSinceLastPrint / (double) ((System.currentTimeMillis() - this.lastPrintTime) / 1000)));
             this.lastPrintedProgress = progress;
             this.skipGramsProducedSinceLastPrint = 0;
