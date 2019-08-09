@@ -39,9 +39,10 @@ public class SkipGramReceiver extends AbstractReapedActor {
                    .build();
     }
 
-    private void handle(ProcessEncodedSkipGram message) {
+    private void handle(ProcessEncodedSkipGram message) throws InterruptedException {
         if (!Vocabulary.getInstance().isComplete()) {
             this.log().info("Postponing encoded skip-gram because vocabulary is not completed yet");
+            Thread.sleep(1000);
             this.self().tell(message, this.sender());
             return;
         }
