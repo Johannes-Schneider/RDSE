@@ -86,6 +86,7 @@ public class Vocabulary implements Iterable<String> {
     private final Map<RootActorPath, VocabularyPartition> vocabularyPartitions = new HashMap<>();
     private final AliasSampler aliasSampler;
     private final ReentrantLock writeLock = new ReentrantLock();
+    public final Map<Integer, Long> sampleFrequencies = new HashMap<>();
 
     private Vocabulary(TreeMap<String, Long> subsampledWordCounts) {
         this.words = subsampledWordCounts.keySet().toArray(new String[0]);
@@ -200,6 +201,10 @@ public class Vocabulary implements Iterable<String> {
             }
 
             uniqueLocalIndices.add(localIndex);
+        }
+        for (Integer sampledIndex : uniqueLocalIndices) {
+            this.sampleFrequencies.putIfAbsent(sampledIndex, 0L);
+            this.sampleFrequencies.put(sampledIndex, this.sampleFrequencies.get(sampledIndex) + 1);
         }
         return ArrayUtils.toPrimitive(uniqueLocalIndices.toArray(new Integer[0]));
     }

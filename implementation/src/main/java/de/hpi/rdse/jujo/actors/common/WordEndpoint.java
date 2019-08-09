@@ -3,6 +3,7 @@ package de.hpi.rdse.jujo.actors.common;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.RootActorPath;
+import com.esotericsoftware.minlog.Log;
 import de.hpi.rdse.jujo.actors.common.training.SkipGramReceiver;
 import de.hpi.rdse.jujo.actors.common.training.TrainingCoordinator;
 import de.hpi.rdse.jujo.training.EncodedSkipGram;
@@ -177,6 +178,8 @@ public class WordEndpoint extends AbstractReapedActor {
         this.log().info(String.format("%s unsubscribed from local wordEndpoint. %d remaining subscribers",
                 this.sender().path().root(), this.subscribers.size()));
         if (this.subscribers.isEmpty()) {
+            this.log().info(String.format("Vocabularie's negative samples: size %d; %s",
+                    Vocabulary.getInstance().sampleFrequencies.size(), Vocabulary.getInstance().sampleFrequencies));
             this.purposeHasBeenFulfilled();
         }
     }
