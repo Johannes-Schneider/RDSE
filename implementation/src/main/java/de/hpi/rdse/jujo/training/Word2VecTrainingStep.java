@@ -65,9 +65,17 @@ public class Word2VecTrainingStep {
 
         for (int localSampleIndex : negativeSamples) {
             RealVector sampledWeight = this.model.getOutputWeight(localSampleIndex);
-            double sigmoidResult = this.sigmoid.value(sampledWeight.dotProduct(this.input.getWeights()));
+            if (sampledWeight.isNaN()) {
+                Log.error("Encountered NAN for negative sampled weight");
+            }
+            double dotProduct = sampledWeight.dotProduct(this.input.getWeights());
+            if (Double.isNaN(dotProduct)) {
+                Log.error("Encountered NAN for dot product during negative sample training step");
+            }
+            double sigmoidResult = this.sigmoid.value(dotProduct);
             if (Double.isNaN(sigmoidResult)) {
-                Log.error("Encountered NAN for sigmoid result during negative sampling");
+                Log.error(String.format("Encountered NAN for sigmoid result of expected output word %s using value %f",
+                        this.skipGram.getExpectedOutput(), dotProduct));
             }
             RealVector sampleGradient = this.input.getWeights().mapMultiply(sigmoidResult);
             this.inputGradient = this.inputGradient.add(sampledWeight.mapMultiply(sigmoidResult));
