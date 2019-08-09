@@ -13,7 +13,7 @@ from workers.shutdown_worker import ShutdownWorker
 
 
 def main():
-    logging.basicConfig(format="%(asctime)s : [%(threadName)s] %(levelname)s : %(message)s", level=logging.INFO)
+    logging.basicConfig(format="%(asctime)s : [%(process)s] %(levelname)s : %(message)s", level=logging.INFO)
 
     parser = _initialize_parser()
     args = parser.parse_args()

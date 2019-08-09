@@ -16,4 +16,6 @@ master
 ./results.txt
 -e
 1
+--window-size
+5
 | tee log.log
