@@ -41,7 +41,8 @@ public class Word2VecTrainingStep {
         }
         double dotProduct = this.outputWordOutputWeights.dotProduct(this.input.getWeights());
         if (Double.isNaN(dotProduct)) {
-            Log.error("Encountered NAN for dot product during training step");
+            Log.error(String.format("Encountered NAN for dot product during training step using %s and %s",
+                    this.outputWordOutputWeights, this.input.getWeights()));
         }
         double sigmoidResult = this.sigmoid.value(dotProduct) - 1;
         if (Double.isNaN(sigmoidResult)) {
@@ -70,7 +71,9 @@ public class Word2VecTrainingStep {
             }
             double dotProduct = sampledWeight.dotProduct(this.input.getWeights());
             if (Double.isNaN(dotProduct)) {
-                Log.error("Encountered NAN for dot product during negative sample training step");
+                Log.error(String.format("Encountered NAN for dot product during negative sampling in training step " +
+                                "using %s and %s",
+                        sampledWeight, this.input.getWeights()));
             }
             double sigmoidResult = this.sigmoid.value(dotProduct);
             if (Double.isNaN(sigmoidResult)) {
