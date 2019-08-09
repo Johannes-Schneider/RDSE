@@ -68,7 +68,7 @@ public class Word2VecModel {
     }
 
     private double[] createRandomWeights(int dimensions) {
-        double max = 1.0f / 2.0f * dimensions;
+        double max = 1.0d;
         double[] weights = new double[dimensions];
 
         for (int i = 0; i < dimensions; ++i) {
@@ -183,6 +183,10 @@ public class Word2VecModel {
 
         if (learningRate <= 0.0f) {
             Log.error(String.format("Learning rate <= 0 for epoch %d", epoch));
+            return this.learningRate;
+        }
+        else if (learningRate > 1.0f) {
+            Log.error(String.format("Learning rate > 1 for epoch %d", epoch));
             return this.learningRate;
         }
 

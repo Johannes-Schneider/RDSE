@@ -41,13 +41,11 @@ public class Word2VecTrainingStep {
         }
         double dotProduct = this.outputWordOutputWeights.dotProduct(this.input.getWeights());
         if (Double.isNaN(dotProduct)) {
-            Log.error(String.format("Encountered NAN for dot product during training step using %s and %s",
-                    this.outputWordOutputWeights, this.input.getWeights()));
+            Log.error("Encountered NAN for dot product during training step");
         }
         double sigmoidResult = this.sigmoid.value(dotProduct) - 1;
         if (Double.isNaN(sigmoidResult)) {
-            Log.error(String.format("Encountered NAN for sigmoid result of expected output word %s using value %f",
-                    this.skipGram.getExpectedOutput(), dotProduct));
+            Log.error("Encountered NAN for sigmoid result of expected output word");
         }
         this.outputGradient = this.input.getWeights().mapMultiply(sigmoidResult);
         this.inputGradient = this.outputWordOutputWeights.mapMultiply(sigmoidResult);
@@ -71,14 +69,11 @@ public class Word2VecTrainingStep {
             }
             double dotProduct = sampledWeight.dotProduct(this.input.getWeights());
             if (Double.isNaN(dotProduct)) {
-                Log.error(String.format("Encountered NAN for dot product during negative sampling in training step " +
-                                "using %s and %s",
-                        sampledWeight, this.input.getWeights()));
+                Log.error("Encountered NAN for dot product during negative sampling in training step");
             }
             double sigmoidResult = this.sigmoid.value(dotProduct);
             if (Double.isNaN(sigmoidResult)) {
-                Log.error(String.format("Encountered NAN for sigmoid result of expected output word %s using value %f",
-                        this.skipGram.getExpectedOutput(), dotProduct));
+                Log.error("Encountered NAN for sigmoid result of expected output word ");
             }
             RealVector sampleGradient = this.input.getWeights().mapMultiply(sigmoidResult);
             this.inputGradient = this.inputGradient.add(sampledWeight.mapMultiply(sigmoidResult));
