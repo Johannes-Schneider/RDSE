@@ -89,6 +89,14 @@ public class Word2VecModel {
         long globalOneHotIndex = Vocabulary.getInstance().oneHotIndex(word);
         int localOneHotIndex = Vocabulary.getInstance().toLocalOneHotIndex(globalOneHotIndex);
         RealVector inputWeight = this.getInputWeight(localOneHotIndex);
+
+        if (inputWeight.isNaN()) {
+            Log.error(String.format("Encountered NAN when creating input embedding! Re-Initializing input weight at " +
+                    "%d", localOneHotIndex));
+            inputWeight = new ArrayRealVector(this.createRandomWeights(this.configuration.getDimensions()), false);
+            this.inputWeights[localOneHotIndex] = inputWeight;
+        }
+
         return new WordEmbedding(globalOneHotIndex, inputWeight);
     }
 
