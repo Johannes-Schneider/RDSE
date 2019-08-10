@@ -1,7 +1,5 @@
 package de.hpi.rdse.jujo.training;
 
-
-import akka.actor.RootActorPath;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,11 +18,9 @@ public class CWordEmbedding implements Serializable {
             ".##########"));
     private String word;
     private RealVector weights;
-    private RootActorPath responsibleTrainer;
-
 
     @Override
     public String toString() {
-        return String.format("%s {{%s}} %s", word, this.responsibleTrainer, CWordEmbedding.cWordFormat.format(weights));
+        return String.format("%s %s", word, CWordEmbedding.cWordFormat.format(weights));
     }
 }

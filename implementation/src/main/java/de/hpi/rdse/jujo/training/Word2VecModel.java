@@ -161,17 +161,8 @@ public class Word2VecModel {
         Word2VecConfiguration configuration = this.getConfiguration();
         int numberOfEpochs = Math.max(1, configuration.getNumberOfEpochs());
         float delta = (this.learningRate - configuration.getMinimumLearningRate()) / numberOfEpochs;
-        float learningRate = this.learningRate - (epoch * delta);
 
-        if (learningRate <= 0.0f) {
-            Log.error(String.format("Learning rate <= 0 for epoch %d", epoch));
-            return this.learningRate;
-        } else if (learningRate > 1.0f) {
-            Log.error(String.format("Learning rate > 1 for epoch %d", epoch));
-            return this.learningRate;
-        }
-
-        return learningRate;
+        return this.learningRate - (epoch * delta);;
     }
 
     public Iterator<CWordEmbedding> getResults() {

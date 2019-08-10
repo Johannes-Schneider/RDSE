@@ -17,7 +17,6 @@ public class Word2VecModelIterator implements Iterator<CWordEmbedding> {
         return CWordEmbedding.builder()
                              .word(Vocabulary.getInstance().get(this.currentIndex))
                              .weights(Word2VecModel.getInstance().getInputWeight(this.currentIndex++))
-                             .responsibleTrainer(WordEndpointResolver.getInstance().localWordEndpoint().path().root())
                              .build();
     }
 }
