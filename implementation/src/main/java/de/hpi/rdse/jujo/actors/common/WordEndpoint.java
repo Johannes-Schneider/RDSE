@@ -123,6 +123,10 @@ public class WordEndpoint extends AbstractReapedActor {
     private void handle(VocabularyCreated message) {
         this.vocabularyDistributor.tell(new VocabularyDistributor.DistributeVocabulary(), this.self());
         this.context().parent().tell(message, this.self());
+        if (Vocabulary.getInstance().isComplete()) {
+            this.log().info("Vocabulary completed. Informing WordEndpoint.");
+            this.self().tell(new WordEndpoint.VocabularyCompleted(), this.self());
+        }
     }
 
     private void handle(VocabularyCompleted message) {

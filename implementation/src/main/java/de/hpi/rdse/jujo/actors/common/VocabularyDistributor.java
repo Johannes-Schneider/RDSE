@@ -102,6 +102,10 @@ public class VocabularyDistributor extends AbstractReapedActor {
                                                                                            .vocabularyLength(vocabularyLength)
                                                                                            .build()), this.context().dispatcher()).to(endpoint, this.self());
         }
+
+        if (this.unacknowledgedVocabularyReceivers.isEmpty()) {
+            this.purposeHasBeenFulfilled();
+        }
     }
 
     private void handle(AcknowledgeVocabulary message) {
