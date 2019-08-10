@@ -17,6 +17,7 @@ public class Word2VecConfiguration  {
                 .minimumLearningRate(masterCommand.getMinimumLearningRate())
                 .numberOfEpochs(masterCommand.getNumberOfEpochs())
                 .numberOfNegativeSamples(masterCommand.getNumberOfNegativeSamples())
+                .minCount(masterCommand.getMinCount())
                 .build();
     }
 
@@ -32,6 +33,8 @@ public class Word2VecConfiguration  {
     private int numberOfEpochs = MasterCommand.DEFAULT_NUMBER_OF_EPOCHS;
     @Builder.Default
     private int numberOfNegativeSamples = MasterCommand.DEFAULT_NUMBER_OF_NEGATIVE_SAMPLES;
+    @Builder.Default
+    private int minCount = MasterCommand.DEFAULT_MIN_COUNT;
 
     @SuppressWarnings("MethodDoesntCallSuperMethod")
     public Word2VecConfiguration clone() {
@@ -42,6 +45,7 @@ public class Word2VecConfiguration  {
                 .minimumLearningRate(this.minimumLearningRate)
                 .numberOfEpochs(this.numberOfEpochs)
                 .numberOfNegativeSamples(this.numberOfNegativeSamples)
+                .minCount(this.minCount)
                 .build();
     }
 }

@@ -28,6 +28,7 @@ public class MasterCommand extends CommandBase {
     public static final float DEFAULT_LEARNING_RATE = 0.1f;
     public static final float DEFAULT_MINIMUM_LEARNING_RATE = 0.0001f;
     public static final int DEFAULT_NUMBER_OF_NEGATIVE_SAMPLES = 5;
+    public static final int DEFAULT_MIN_COUNT = 5;
 
     @Parameter(names = {"-i", "--input"}, description = "text corpus to train on", validateValueWith =
             FileValidator.class, required = true, converter = StringToPathConverter.class)
@@ -58,6 +59,10 @@ public class MasterCommand extends CommandBase {
     @Parameter(names = {"-n", "--negative-samples"}, description = "number of negative samples", validateValueWith =
             ValueGreaterThanZeroValidator.class)
     int numberOfNegativeSamples = DEFAULT_NUMBER_OF_NEGATIVE_SAMPLES;
+
+    @Parameter(names = {"--min-count"}, description = "number of times a word has to appear to be considered",
+               validateValueWith = ValueGreaterThanZeroValidator.class)
+    int minCount = DEFAULT_MIN_COUNT;
 
     @Parameter(names = {"-o", "--output"}, description = "path and name to file where result should be stored",
      required = true, converter = StringToPathConverter.class)
