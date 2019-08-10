@@ -43,7 +43,7 @@ public class ResultPartitionReceiver extends AbstractReapedActor {
     private final Materializer materializer;
 
     private ResultPartitionReceiver(Path resultFile) throws IOException {
-        this.writer = new BufferedWriter(new FileWriter(resultFile.toFile(), true));
+        this.writer = new BufferedWriter(new FileWriter(resultFile.toFile(), false));
         this.materializer = ActorMaterializer.create(this.context().system());
         for (ActorRef endpoint : WordEndpointResolver.getInstance().all()) {
             this.activeNodes.add(endpoint.path().root());
