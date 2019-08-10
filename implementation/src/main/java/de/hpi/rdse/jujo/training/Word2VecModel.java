@@ -37,6 +37,10 @@ public class Word2VecModel {
         Word2VecModel.modelConfiguration = modelConfiguration;
     }
 
+    public static Word2VecConfiguration getModelConfiguration() {
+        return Word2VecModel.modelConfiguration;
+    }
+
     private final RealVector[] inputWeights;
     private final RealVector[] outputWeights;
     private final Random randomGenerator = new Random();
@@ -63,6 +67,7 @@ public class Word2VecModel {
         for (int i = 0; i < weights.length; ++i) {
             double[] rawData = this.createRandomWeights(this.configuration.getDimensions());
             weights[i] = new ArrayRealVector(rawData, false);
+            weights[i] = weights[i].mapMultiply(1.0 / weights[i].getNorm());
         }
         return weights;
     }
@@ -90,13 +95,6 @@ public class Word2VecModel {
         int localOneHotIndex = Vocabulary.getInstance().toLocalOneHotIndex(globalOneHotIndex);
         RealVector inputWeight = this.getInputWeight(localOneHotIndex);
 
-        if (inputWeight.isNaN()) {
-            Log.error(String.format("Encountered NAN when creating input embedding! Re-Initializing input weight at " +
-                    "%d", localOneHotIndex));
-            inputWeight = new ArrayRealVector(this.createRandomWeights(this.configuration.getDimensions()), false);
-            this.inputWeights[localOneHotIndex] = inputWeight;
-        }
-
         return new WordEmbedding(globalOneHotIndex, inputWeight);
     }
 
@@ -106,42 +104,26 @@ public class Word2VecModel {
     }
 
     public void updateInputWeight(int localOneHotIndex, RealVector gradient, int epoch) {
-        if (gradient.isNaN()) {
-            Log.error("Encountered NAN when updating input weights!");
-            return;
-        }
         try {
             this.lockInputWeight(localOneHotIndex);
             RealVector inputWeight = this.getInputWeight(localOneHotIndex);
-            RealVector updatedInputWeights = inputWeight.subtract(gradient.mapMultiply(this.getLearningRate(epoch)));
+            gradient.mapMultiplyToSelf(1.0 / gradient.getNorm()).mapMultiplyToSelf(this.getLearningRate(epoch));
+            RealVector updatedInputWeights = inputWeight.subtract(gradient);
 
-            if (updatedInputWeights.isNaN()) {
-                Log.error("Input weights are NAN after performing update!");
-                return;
-            }
-
-            this.inputWeights[localOneHotIndex] = updatedInputWeights;
+            this.inputWeights[localOneHotIndex] = updatedInputWeights.mapMultiply(1.0 / updatedInputWeights.getNorm());
         } finally {
             this.unlockInputWeight(localOneHotIndex);
         }
     }
 
     public void updateOutputWeight(int localOneHotIndex, RealVector gradient, int epoch) {
-        if (gradient.isNaN()) {
-            Log.error("Encountered NAN when updating output weights!");
-            return;
-        }
         try {
             this.lockOutputWeight(localOneHotIndex);
             RealVector outputWeight = this.getOutputWeight(localOneHotIndex);
-            RealVector updatedOutputWeights = outputWeight.subtract(gradient.mapMultiply(this.getLearningRate(epoch)));
+            gradient.mapMultiplyToSelf(1.0 / gradient.getNorm()).mapMultiplyToSelf(this.getLearningRate(epoch));
+            RealVector updatedOutputWeights = outputWeight.subtract(gradient);
 
-            if (updatedOutputWeights.isNaN()) {
-                Log.error("Output weights are NAN after performing update!");
-                return;
-            }
-
-            this.outputWeights[localOneHotIndex] = updatedOutputWeights;
+            this.outputWeights[localOneHotIndex] = updatedOutputWeights.mapMultiply(1.0 / updatedOutputWeights.getNorm());
         } finally {
             this.unlockOutputWeight(localOneHotIndex);
         }
@@ -184,8 +166,7 @@ public class Word2VecModel {
         if (learningRate <= 0.0f) {
             Log.error(String.format("Learning rate <= 0 for epoch %d", epoch));
             return this.learningRate;
-        }
-        else if (learningRate > 1.0f) {
+        } else if (learningRate > 1.0f) {
             Log.error(String.format("Learning rate > 1 for epoch %d", epoch));
             return this.learningRate;
         }

@@ -33,23 +33,8 @@ public class Word2VecTrainingStep {
 
     public RealVector train() {
         Log.debug(String.format("Start training for expected output word %s", this.skipGram.getExpectedOutput()));
-        if (this.input.getWeights().isNaN()) {
-            Log.error("Encountered NAN for input weights during trainingStep");
-        }
-        if (this.outputWordOutputWeights.isNaN()) {
-            Log.error("Encountered NAN for output weights during trainingStep");
-        }
         double dotProduct = this.outputWordOutputWeights.dotProduct(this.input.getWeights());
-        if (Double.isNaN(dotProduct)) {
-            Log.error("Encountered NAN for dot product during training step");
-        }
         double forwardPropagationError = this.sigmoid.value(dotProduct) - 1;
-        if (Double.isNaN(forwardPropagationError)) {
-            Log.error("Encountered NAN for sigmoid result of expected output word");
-        }
-        if (forwardPropagationError < -1 || forwardPropagationError > 0) {
-            Log.error("Wrong forward propagation error calculated! Should be in range [-1, 0].");
-        }
         this.outputGradient = this.input.getWeights().mapMultiply(forwardPropagationError);
         this.inputGradient = this.outputWordOutputWeights.mapMultiply(forwardPropagationError); // take outputWeight
         // of input word
@@ -68,17 +53,9 @@ public class Word2VecTrainingStep {
 
         for (int localSampleIndex : negativeSamples) {
             RealVector sampledWeight = this.model.getOutputWeight(localSampleIndex);
-            if (sampledWeight.isNaN()) {
-                Log.error("Encountered NAN for negative sampled weight");
-            }
+
             double dotProduct = sampledWeight.dotProduct(this.input.getWeights());
-            if (Double.isNaN(dotProduct)) {
-                Log.error("Encountered NAN for dot product during negative sampling in training step");
-            }
             double sigmoidResult = this.sigmoid.value(dotProduct);
-            if (Double.isNaN(sigmoidResult)) {
-                Log.error("Encountered NAN for sigmoid result of expected output word ");
-            }
             RealVector sampleGradient = this.input.getWeights().mapMultiply(sigmoidResult);
             this.inputGradient = this.inputGradient.add(sampledWeight.mapMultiply(sigmoidResult));
 
