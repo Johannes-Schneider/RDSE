@@ -67,7 +67,7 @@ public class Vocabulary implements Iterable<String> {
     }
 
     public static String decode(byte[] encodedPhrase, int offset, int length) {
-        return new String(encodedPhrase, offset, length, WORD_ENCODING);
+        return Vocabulary.unify(new String(encodedPhrase, offset, length, WORD_ENCODING));
     }
 
     public static int getByteCount(String phrase) {
