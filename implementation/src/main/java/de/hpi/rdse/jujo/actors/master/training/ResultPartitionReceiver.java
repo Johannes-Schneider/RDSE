@@ -8,6 +8,7 @@ import akka.actor.RootActorPath;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
+import com.esotericsoftware.minlog.Log;
 import de.hpi.rdse.jujo.actors.common.AbstractReapedActor;
 import de.hpi.rdse.jujo.actors.common.training.ResultPartitionSender;
 import de.hpi.rdse.jujo.actors.master.Master;
@@ -25,6 +26,7 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ResultPartitionReceiver extends AbstractReapedActor {
 
@@ -41,6 +43,7 @@ public class ResultPartitionReceiver extends AbstractReapedActor {
     private final BufferedWriter writer;
     private final Set<RootActorPath> activeNodes = new HashSet<>();
     private final Materializer materializer;
+    private final AtomicInteger wordCounts = new AtomicInteger(0);
 
     private ResultPartitionReceiver(Path resultFile) throws IOException {
         this.writer = new BufferedWriter(new FileWriter(resultFile.toFile(), false));
@@ -65,8 +68,8 @@ public class ResultPartitionReceiver extends AbstractReapedActor {
     }
 
     private void handleResult(CWordEmbedding embedding) throws IOException {
-        writer.write(embedding.toString());
-        writer.newLine();
+        this.writer.write(embedding.toString());
+        this.wordCounts.incrementAndGet();
     }
 
     private NotUsed handleTermination(NotUsed notUsed, CompletionStage<Done> stage, ActorRef sender) {
@@ -75,6 +78,11 @@ public class ResultPartitionReceiver extends AbstractReapedActor {
             this.activeNodes.remove(sender.path().root());
             sender.tell(new ResultPartitionSender.AcknowledgeResultPartition(), this.self());
             if (this.activeNodes.isEmpty()) {
+                try {
+                    this.writer.flush();
+                } catch (IOException e) {
+                    Log.error("Flushing of buffered result writer failed.");
+                }
                 this.context().parent().tell(new Master.AllResultsReceived(), this.self());
                 this.purposeHasBeenFulfilled();
             }
