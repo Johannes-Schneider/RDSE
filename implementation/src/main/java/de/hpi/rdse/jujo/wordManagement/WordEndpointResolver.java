@@ -61,7 +61,7 @@ public class WordEndpointResolver {
         if (!this.isReadyToResolve()) {
             return ActorRef.noSender();
         }
-        return this.wordEndpoints.get(this.wordEndpointIndex(word));
+        return this.wordEndpoints.get(this.wordEndpointIndex(Vocabulary.unify(word)));
     }
 
     private int wordEndpointIndex(String word) {
