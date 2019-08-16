@@ -5,7 +5,7 @@ import java.util.Random;
 
 public class FrequencyBasedSubsampling implements SubsamplingStrategy {
 
-    private static final double FREQUENCY_CUT_OFF = 1e-5;
+    private static final double FREQUENCY_CUT_OFF = 0.00001;
 
     private final long corpusSize;
     private final Map<String, Long> wordCounts;
@@ -25,8 +25,7 @@ public class FrequencyBasedSubsampling implements SubsamplingStrategy {
         }
         float probability = this.random.nextFloat();
         double frequency = this.frequency(word);
-        double precedingFraction = (frequency - FREQUENCY_CUT_OFF) / frequency;
-        return (precedingFraction - Math.sqrt(FREQUENCY_CUT_OFF / frequency)) > probability;
+        return (((frequency - FREQUENCY_CUT_OFF) / frequency) - Math.sqrt(FREQUENCY_CUT_OFF / frequency)) < probability;
     }
 
     private double frequency(String word) {
