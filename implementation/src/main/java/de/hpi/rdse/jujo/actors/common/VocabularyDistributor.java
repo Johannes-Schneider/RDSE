@@ -28,7 +28,7 @@ import java.util.concurrent.CompletionStage;
 
 public class VocabularyDistributor extends AbstractReapedActor {
 
-    private static final double BLOOM_FILTER_FALSE_POSITIVE_RATE = 0.03d;
+    private static final double BLOOM_FILTER_FALSE_POSITIVE_RATE = 0.003d;
 
     public static Props props() {
         return Props.create(VocabularyDistributor.class, VocabularyDistributor::new);
