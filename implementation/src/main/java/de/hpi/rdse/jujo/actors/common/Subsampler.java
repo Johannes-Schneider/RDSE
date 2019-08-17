@@ -173,7 +173,7 @@ public class Subsampler extends AbstractReapedActor {
                 this.totalCorpusSize,
                 this.wordCounts.values().stream().reduce(0L, Long::sum)));
 
-        SubsamplingStrategy subsamplingStrategy = new FrequencyBasedSubsampling(this.totalCorpusSize, this.wordCounts,
+        SubsamplingStrategy subsamplingStrategy = new FrequencyBasedSubsampling(this.wordCounts,
                 Word2VecModel.getModelConfiguration().getMinCount());
         TreeMap<String, Long> uniqueWords = new TreeMap<>();
         for (Map.Entry<String, Long> wordCount : this.wordCounts.entrySet()) {

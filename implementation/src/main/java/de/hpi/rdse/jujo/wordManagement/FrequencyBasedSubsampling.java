@@ -5,30 +5,33 @@ import java.util.Random;
 
 public class FrequencyBasedSubsampling implements SubsamplingStrategy {
 
-    private static final double FREQUENCY_CUT_OFF = 0.00001;
+    private static final double FREQUENCY_CUT_OFF = 1e-3;
 
-    private final long corpusSize;
     private final Map<String, Long> wordCounts;
     private final Random random = new Random();
     private final int minCount;
+    private final double thresholdCount;
 
-    public FrequencyBasedSubsampling(long corpusSize, Map<String, Long> wordCounts, int minCount) {
-        this.corpusSize = corpusSize;
+    public FrequencyBasedSubsampling(Map<String, Long> wordCounts, int minCount) {
         this.wordCounts = wordCounts;
         this.minCount = minCount;
+        this.thresholdCount = this.thresholdCount();
     }
 
     @Override
     public boolean keep(String word) {
-        if (this.wordCounts.get(word) < this.minCount) {
+        long wordCount = this.wordCounts.get(word);
+        if (wordCount < this.minCount) {
             return false;
         }
-        float probability = this.random.nextFloat();
-        double frequency = this.frequency(word);
-        return (((frequency - FREQUENCY_CUT_OFF) / frequency) - Math.sqrt(FREQUENCY_CUT_OFF / frequency)) < probability;
+        double probability = this.random.nextDouble();
+        double wordProbability = (Math.sqrt(wordCount / this.thresholdCount) + 1) * (this.thresholdCount / wordCount);
+        wordProbability = Math.min(1, wordProbability);
+        return wordProbability > probability;
     }
 
-    private double frequency(String word) {
-        return (double) this.wordCounts.get(word) / this.corpusSize;
+    private double thresholdCount() {
+        long retainCount = wordCounts.values().stream().filter(v -> v >= this.minCount).reduce(0L, Long::sum);
+        return retainCount * FREQUENCY_CUT_OFF;
     }
 }
