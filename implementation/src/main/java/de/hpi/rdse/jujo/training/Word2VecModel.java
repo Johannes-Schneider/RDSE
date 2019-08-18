@@ -67,7 +67,6 @@ public class Word2VecModel {
         for (int i = 0; i < weights.length; ++i) {
             double[] rawData = this.createRandomWeights(this.configuration.getDimensions());
             weights[i] = new ArrayRealVector(rawData, false);
-            weights[i] = weights[i].mapMultiply(1.0 / weights[i].getNorm());
         }
         return weights;
     }
@@ -107,10 +106,10 @@ public class Word2VecModel {
         try {
             this.lockInputWeight(localOneHotIndex);
             RealVector inputWeight = this.getInputWeight(localOneHotIndex);
-            gradient.mapMultiplyToSelf(1.0 / gradient.getNorm()).mapMultiplyToSelf(this.getLearningRate(epoch));
+            gradient.mapMultiplyToSelf(this.getLearningRate(epoch));
             RealVector updatedInputWeights = inputWeight.subtract(gradient);
 
-            this.inputWeights[localOneHotIndex] = updatedInputWeights.mapMultiply(1.0 / updatedInputWeights.getNorm());
+            this.inputWeights[localOneHotIndex] = updatedInputWeights;
         } finally {
             this.unlockInputWeight(localOneHotIndex);
         }
@@ -120,10 +119,10 @@ public class Word2VecModel {
         try {
             this.lockOutputWeight(localOneHotIndex);
             RealVector outputWeight = this.getOutputWeight(localOneHotIndex);
-            gradient.mapMultiplyToSelf(1.0 / gradient.getNorm()).mapMultiplyToSelf(this.getLearningRate(epoch));
+            gradient.mapMultiplyToSelf(this.getLearningRate(epoch));
             RealVector updatedOutputWeights = outputWeight.subtract(gradient);
 
-            this.outputWeights[localOneHotIndex] = updatedOutputWeights.mapMultiply(1.0 / updatedOutputWeights.getNorm());
+            this.outputWeights[localOneHotIndex] = updatedOutputWeights;
         } finally {
             this.unlockOutputWeight(localOneHotIndex);
         }
