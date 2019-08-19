@@ -1,10 +1,15 @@
 package de.hpi.rdse.jujo.wordManagement;
 
+import de.hpi.rdse.jujo.fileHandling.FilePartitionIterator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.Map;
 import java.util.Random;
 
 public class FrequencyBasedSubsampling implements SubsamplingStrategy {
 
+    private static final Logger Log = LogManager.getLogger(FilePartitionIterator.class);
     private static final double FREQUENCY_CUT_OFF = 1e-3;
 
     private final Map<String, Long> wordCounts;
@@ -16,6 +21,9 @@ public class FrequencyBasedSubsampling implements SubsamplingStrategy {
         this.wordCounts = wordCounts;
         this.minCount = minCount;
         this.thresholdCount = this.thresholdCount();
+        long minCountReducedWords = this.wordCounts.values().stream().filter(v -> v >= this.minCount).reduce(0L,
+                Long::sum);
+        Log.info(String.format("MinCount removed %d words during subsampling", minCountReducedWords));
     }
 
     @Override
@@ -27,11 +35,15 @@ public class FrequencyBasedSubsampling implements SubsamplingStrategy {
         double probability = this.random.nextDouble();
         double wordProbability = (Math.sqrt(wordCount / this.thresholdCount) + 1) * (this.thresholdCount / wordCount);
         wordProbability = Math.min(1, wordProbability);
+        if (word.equals("berlin")) {
+            Log.info(String.format("Word probability for berlin is %f, required %f", wordProbability, probability));
+        }
         return wordProbability > probability;
     }
 
     private double thresholdCount() {
-        long retainCount = wordCounts.values().stream().filter(v -> v >= this.minCount).reduce(0L, Long::sum);
+        long retainCount = wordCounts.values().stream().filter(v -> v >= this.minCount).reduce(0L,
+                Long::sum);
         return retainCount * FREQUENCY_CUT_OFF;
     }
 }
