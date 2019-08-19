@@ -21,9 +21,6 @@ public class FrequencyBasedSubsampling implements SubsamplingStrategy {
         this.wordCounts = wordCounts;
         this.minCount = minCount;
         this.thresholdCount = this.thresholdCount();
-        long minCountReducedWords = this.wordCounts.values().stream().filter(v -> v < this.minCount).reduce(0L,
-                Long::sum);
-        Log.info(String.format("MinCount removed %d words during subsampling", minCountReducedWords));
     }
 
     @Override
@@ -43,7 +40,7 @@ public class FrequencyBasedSubsampling implements SubsamplingStrategy {
 
     private double thresholdCount() {
         long retainCount = wordCounts.values().stream().filter(v -> v >= this.minCount).reduce(0L,
-                Long::sum);
+                Long::sum) * WordEndpointResolver.getInstance().all().size();
         return retainCount * FREQUENCY_CUT_OFF;
     }
 }
