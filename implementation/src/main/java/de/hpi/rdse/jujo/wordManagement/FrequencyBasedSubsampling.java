@@ -32,15 +32,12 @@ public class FrequencyBasedSubsampling implements SubsamplingStrategy {
         double probability = this.random.nextDouble();
         double wordProbability = (Math.sqrt(wordCount / this.thresholdCount) + 1) * (this.thresholdCount / wordCount);
         wordProbability = Math.min(1, wordProbability);
-        if (word.equals("berlin")) {
-            Log.info(String.format("Word probability for berlin is %f, required %f", wordProbability, probability));
-        }
         return wordProbability > probability;
     }
 
     private double thresholdCount() {
-        long retainCount = wordCounts.values().stream().filter(v -> v >= this.minCount).reduce(0L,
-                Long::sum) * WordEndpointResolver.getInstance().all().size();
+        long retainCount = wordCounts.values().stream().filter(v -> v >= this.minCount).reduce(0L, Long::sum)
+                * WordEndpointResolver.getInstance().all().size();
         return retainCount * FREQUENCY_CUT_OFF;
     }
 }
