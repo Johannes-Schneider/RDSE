@@ -16,7 +16,7 @@ public class FileWordIterator implements Iterator<String[]> {
 
     private static final Logger Log = LogManager.getLogger(FileWordIterator.class);
     public static int chunkSize() {
-        return (int) (ConfigurationWrapper.getMaximumMessageSize() * 0.5d);
+        return (int) (ConfigurationWrapper.getMaximumMessageSize() * 0.01d);
     }
 
     private final FileInputStream inputStream;

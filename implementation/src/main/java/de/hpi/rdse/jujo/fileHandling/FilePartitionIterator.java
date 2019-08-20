@@ -15,7 +15,7 @@ public class FilePartitionIterator implements Iterator<ByteString> {
 
     private static final Logger Log = LogManager.getLogger(FilePartitionIterator.class);
     public static int chunkSize() {
-        return (int) (ConfigurationWrapper.getMaximumMessageSize() * 0.5);
+        return (int) (ConfigurationWrapper.getMaximumMessageSize() * 0.05);
     }
 
     private final FileInputStream inputStream;
