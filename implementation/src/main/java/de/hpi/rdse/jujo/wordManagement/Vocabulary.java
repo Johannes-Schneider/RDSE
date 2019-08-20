@@ -30,7 +30,7 @@ public class Vocabulary implements Iterable<String> {
 
     public static final Charset WORD_ENCODING = Charset.forName("UTF-8");
     private static final int MIN_NUMBER_OF_HASHING_BITS = 2048;
-    private static final HashFunction HASH_FUNCTION = Hashing.murmur3_128(0);
+    private static final HashFunction HASH_FUNCTION = Hashing.murmur3_128(1337);
 
     private static Vocabulary instance;
 
