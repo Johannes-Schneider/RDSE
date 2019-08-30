@@ -36,8 +36,7 @@ public class FrequencyBasedSubsampling implements SubsamplingStrategy {
     }
 
     private double thresholdCount() {
-        long retainCount = wordCounts.values().stream().filter(v -> v >= this.minCount).reduce(0L, Long::sum)
-                * WordEndpointResolver.getInstance().all().size();
+        long retainCount = wordCounts.values().stream().filter(v -> v >= this.minCount).reduce(0L, Long::sum);
         return retainCount * FREQUENCY_CUT_OFF;
     }
 }
